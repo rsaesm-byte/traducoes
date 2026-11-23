@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ricardo Saes - Translations - Invoice Generator</title>
+<meta name="theme-color" content="#1f4e79">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  :root{
+    --bg:#eef1f5; --paper:#fff; --ink:#1d2330; --muted:#6b7385; --line:#dfe3ea;
+    --accent:#1f4e79; --accent-soft:#e8f0f8; --danger:#b3261e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 "Segoe UI",Roboto,Arial,sans-serif}
+  .toolbar{position:sticky;top:0;z-index:5;background:var(--accent);color:#fff;padding:10px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .toolbar h1{font-size:16px;margin:0 auto 0 0;font-weight:600}
+  .toolbar button{background:#fff;color:var(--accent);border:0;border-radius:6px;padding:7px 12px;font-weight:600;cursor:pointer}
+  .toolbar button.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6)}
+  .paper{max-width:1500px;margin:20px auto;background:var(--paper);padding:32px;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+  .head{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;border-bottom:3px solid var(--accent);padding-bottom:18px;margin-bottom:18px}
+  .head h2{margin:0;font-size:30px;letter-spacing:2px;color:var(--accent)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+  label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:3px}
+  input,select,textarea{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:6px;font:inherit;color:inherit;background:#fff}
+  textarea{resize:vertical;min-height:54px}
+  .box{background:var(--accent-soft);border-radius:8px;padding:14px}
+  .box h3{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--accent)}
+  .period{margin-top:6px;font-weight:600;color:var(--accent)}
+  .parties{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;min-width:1400px}
+  th{background:var(--accent);color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:8px 6px;text-align:left;white-space:nowrap}
+  td{border-bottom:1px solid var(--line);padding:6px;vertical-align:middle}
+  td input,td select{padding:5px 6px}
+  td.num{text-align:right;font-weight:600;white-space:nowrap}
+  td.col-cliente{min-width:260px}
+  td.col-tipo{min-width:230px}
+  td.col-idioma{min-width:120px}
+  .lang-box{position:relative;display:flex;align-items:center;gap:5px;min-height:32px;padding:4px 26px 4px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer}
+  .lang-box::after{content:"▾";position:absolute;right:8px;color:var(--muted);font-size:12px}
+  .lang-box select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+  .flag{width:26px;height:18px;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.18);display:inline-block;vertical-align:middle;flex:none}
+  .lang-sep{color:var(--muted);font-weight:600}
+  .lang-view{display:flex;align-items:center;gap:4px;white-space:nowrap;font-size:13px}
+  .lang-empty{color:var(--muted);font-size:13px}
+  td.col-pag{width:75px;min-width:75px}
+  td.col-valor{min-width:115px}
+  td.col-data{min-width:145px}
+  .pv{display:none}
+  .sel-add{display:flex;gap:4px}
+  .sel-add button,.icon-btn{border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;padding:0 8px;font-weight:700;color:var(--accent)}
+  .icon-btn.del{color:var(--danger)}
+  .row-actions{display:flex;gap:4px}
+  .row-actions .icon-btn{height:26px;min-width:28px;font-size:14px;line-height:1}
+  .icon-btn.dup:hover{background:var(--accent-soft)}
+  #items tbody tr.flash td{animation:flash 1.2s ease-out}
+  @keyframes flash{from{background:#fff3c4}to{background:transparent}}
+  .add-row{margin-top:10px;background:var(--accent);color:#fff;border:0;border-radius:6px;padding:8px 14px;cursor:pointer;font-weight:600}
+  .totals{display:flex;justify-content:flex-end;margin-top:18px}
+  .totals table{min-width:0;width:340px}
+  .totals td{padding:8px 10px}
+  .totals tr.grand td{background:var(--accent);color:#fff;font-size:18px;font-weight:700}
+  .notes{margin-top:18px}
+  .notes textarea{min-height:90px;overflow:hidden}
+  /* Folha de observações: só aparece na impressão */
+  .notes-page{display:none}
+  .summary-row{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap;margin-top:28px}
+  .summary-row .by-client{margin-top:0;flex:1 1 420px}
+  .donut-card{flex:0 1 520px;border:1px solid var(--line);border-radius:10px;padding:16px 18px;break-inside:avoid}
+  .donut-card h3{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--accent)}
+  .donut-wrap{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+  .donut-box{position:relative;width:190px;height:190px;flex:none}
+  .donut-box svg{width:100%;height:100%;overflow:visible}
+  .donut-box circle.seg{transition:stroke-width .15s,opacity .15s;cursor:pointer}
+  .donut-box.hovering circle.seg:not(.on){opacity:.35}
+  .donut-box circle.seg.on{stroke-width:30}
+  .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none;padding:0 42px}
+  .dc-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dc-value{font-size:17px;font-weight:700;color:var(--ink)}
+  .dc-sub{font-size:12px;color:var(--muted)}
+  .donut-legend{list-style:none;margin:0;padding:0;flex:1 1 200px;display:flex;flex-direction:column;gap:6px;min-width:0}
+  .donut-legend li{display:grid;grid-template-columns:12px 1fr auto;gap:4px 8px;align-items:center;padding:4px 6px;border-radius:6px;cursor:default}
+  .donut-legend li.on{background:var(--accent-soft)}
+  .donut-legend .sw{width:12px;height:12px;border-radius:3px}
+  .donut-legend .nm{font-size:13px;color:var(--ink);overflow-wrap:anywhere}
+  .donut-legend .pc{font-size:13px;font-weight:700;color:var(--ink);text-align:right}
+  .donut-legend .vl{grid-column:2/4;font-size:12px;color:var(--muted);margin-top:-3px}
+  .cdot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;vertical-align:middle}
+  .donut-empty{color:var(--muted);font-size:13px}
+  .by-client{margin-top:28px;break-inside:avoid}
+  .by-client h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--accent)}
+  .by-client table{min-width:0;max-width:700px}
+  .by-client td{white-space:normal}
+  .by-client td:not(:first-child){text-align:right}
+  .by-client td:last-child{font-weight:700}
+  /* Painel de listas */
+  .lists{max-width:1200px;margin:0 auto 20px;background:var(--paper);padding:20px 32px;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,.08);display:none}
+  .lists.open{display:block}
+  .lists .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-height:220px;overflow:auto}
+  .chip{background:var(--accent-soft);border-radius:14px;padding:3px 6px 3px 10px;display:flex;align-items:center;gap:4px;font-size:13px}
+  .chip button{border:0;background:none;color:var(--danger);cursor:pointer;font-weight:700}
+  .inline{display:flex;gap:6px}
+  .inline button{white-space:nowrap}
+  @media (max-width:700px){ .parties{grid-template-columns:1fr} .paper{padding:16px} }
+
+  /* Impressão / PDF */
+  @media print{
+    @page{size:A4 landscape;margin:10mm}
+    body{background:#fff}
+    .toolbar,.lists,.add-row,.no-print,.sel-add button,.icon-btn{display:none!important}
+    .notes{display:none!important}
+    .notes-page.has-content{display:block;break-before:page;page-break-before:always;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .np-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;background:var(--accent);color:#fff;border-radius:10px;padding:18px 24px}
+    .np-brand{font-size:22px;font-weight:700;letter-spacing:.3px}
+    .np-kicker{font-size:11px;text-transform:uppercase;letter-spacing:2px;opacity:.8;margin-top:2px}
+    .np-meta{display:flex;gap:26px}
+    .np-meta div{display:flex;flex-direction:column;align-items:flex-end}
+    .np-meta span{font-size:9px;text-transform:uppercase;letter-spacing:1px;opacity:.75}
+    .np-meta strong{font-size:14px}
+    .np-title{margin:26px 0 2px;font-size:24px;color:var(--accent)}
+    .np-sub{margin:0 0 18px;color:var(--muted);font-size:13px}
+    .np-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;margin-bottom:16px}
+    .np-card{border:1px solid var(--line);border-radius:10px;padding:16px 20px;break-inside:avoid;background:#fff}
+    .np-card h4{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--accent)}
+    .np-card h4 svg{width:18px;height:18px}
+    .np-pay{border-left:5px solid var(--accent);background:var(--accent-soft)}
+    .np-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.7;color:var(--ink)}
+    .np-sum dl{margin:0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .np-sum dl div{background:var(--accent-soft);border-radius:8px;padding:8px 10px}
+    .np-sum dt{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
+    .np-sum dd{margin:2px 0 0;font-size:18px;font-weight:700;color:var(--ink)}
+    .np-total{margin-top:12px;display:flex;justify-content:space-between;align-items:center;background:var(--accent);color:#fff;border-radius:8px;padding:10px 14px}
+    .np-total span{font-size:11px;text-transform:uppercase;letter-spacing:1px}
+    .np-total strong{font-size:22px}
+    .np-notes{border-top:5px solid #eda100}
+    .np-lined{background-image:linear-gradient(to bottom,transparent calc(1.7em - 1px),#e6e9ef calc(1.7em - 1px));background-size:100% 1.7em;min-height:6.8em;font-size:15px}
+    .np-notes .np-text:empty::before{content:"Sem observações.";color:var(--muted);font-style:italic}
+    .np-foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:46px}
+    .np-sign{display:flex;flex-direction:column;align-items:center;min-width:260px;font-size:13px}
+    .np-line{width:100%;border-top:1px solid var(--ink);margin-bottom:6px}
+    .np-sign small{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px}
+    .np-thanks{color:var(--accent);font-weight:600;font-size:14px}
+    .paper{box-shadow:none;margin:0;padding:0;max-width:none}
+    input,select,textarea{border:0;padding:0;background:transparent;-webkit-appearance:none;appearance:none}
+    table{min-width:0!important}
+    .table-wrap{overflow:visible!important}
+    #items{table-layout:auto;width:100%;font-size:10px}
+    #items th{font-size:8.5px;padding:5px 4px;white-space:normal}
+    #items td{padding:4px;min-width:0!important;width:auto!important}
+    #items tr{break-inside:avoid}
+    #items thead{display:table-header-group}
+    .has-pv input,.has-pv select{display:none!important}
+    .pv{display:block;white-space:normal}
+    .col-data .pv,.col-valor .pv{white-space:nowrap}
+    .by-client,.totals,.donut-card{break-inside:avoid}
+    .donut-card,.donut-legend .sw,.cdot,#donut{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    input::-webkit-calendar-picker-indicator{display:none}
+    textarea{resize:none}
+    .lang-box{border:0;padding:0;min-height:0;background:none}
+    .lang-box::after{display:none}
+    .lang-box select{display:none}
+    .flag{width:20px;height:14px}
+    th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .box,.totals tr.grand td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+  /* Status do salvamento automático */
+  .sync{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;border-radius:999px;padding:6px 12px;border:1px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;cursor:default;white-space:nowrap}
+  .sync .dot{width:8px;height:8px;border-radius:50%;background:#7ee2a8;flex:none}
+  .sync.warn{background:#fff3c4;color:#6b4e00;border-color:#fff3c4;cursor:pointer}
+  .sync.warn .dot{background:#eda100}
+  .sync.err{background:#fde2e1;color:#8c1d18;border-color:#fde2e1;cursor:pointer}
+  .sync.err .dot{background:#e34948}
+  .sync.saving .dot{background:#ffd666;animation:pulse 1s infinite}
+  @keyframes pulse{50%{opacity:.3}}
+  /* Janela (modal) */
+  .modal-bg{position:fixed;inset:0;background:rgba(16,24,40,.55);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
+  .modal-bg.open{display:flex}
+  .modal{background:#fff;border-radius:14px;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;animation:pop .18s ease-out}
+  @keyframes pop{from{transform:scale(.96);opacity:0}}
+  .modal-top{background:var(--accent);color:#fff;padding:20px 24px;display:flex;gap:14px;align-items:center}
+  .modal-top .ico{font-size:30px;line-height:1}
+  .modal-top h3{margin:0;font-size:19px}
+  .modal-body{padding:18px 24px;font-size:14px;line-height:1.6}
+  .modal-body p{margin:0 0 10px}
+  .modal-body .hl{background:var(--accent-soft);border-radius:8px;padding:10px 14px;margin:10px 0;display:flex;justify-content:space-between;gap:10px;font-weight:600}
+  .modal-body small{color:var(--muted)}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:0 24px 20px}
+  .modal-actions button{border-radius:8px;padding:9px 14px;font-weight:600;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-weight:600}
+  .modal-actions button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  /* Histórico */
+  .history{max-width:1500px;margin:0 auto 40px;background:var(--paper);padding:28px 32px;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+  .history h2{margin:0;font-size:20px;color:var(--accent)}
+  .history .h-sub{color:var(--muted);font-size:13px;margin:2px 0 18px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+  .kpi{background:var(--accent-soft);border-radius:10px;padding:12px 16px}
+  .kpi span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+  .kpi strong{display:block;font-size:22px;color:var(--ink);margin-top:2px}
+  .kpi small{color:var(--muted);font-size:12px}
+  .kpi.main{background:var(--accent)}
+  .kpi.main span,.kpi.main small{color:rgba(255,255,255,.8)}
+  .kpi.main strong{color:#fff}
+  .h-chart{position:relative;margin-bottom:18px}
+  .h-chart svg{width:100%;height:260px;display:block}
+  .h-chart .bar{cursor:pointer}
+  .h-chart .bar:hover{filter:brightness(1.15)}
+  .h-tip{position:absolute;pointer-events:none;background:#1d2330;color:#fff;font-size:12px;border-radius:8px;padding:8px 10px;white-space:nowrap;transform:translate(-50%,-100%);display:none;line-height:1.5}
+  .h-legend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin:-6px 0 14px}
+  .h-legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  .h-table{width:100%;min-width:0!important;max-width:900px}
+  .h-table td{padding:8px 6px}
+  .h-table td.r,.h-table th.r{text-align:right}
+  .tag{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px;background:#fff3c4;color:#6b4e00;margin-left:6px}
+  .tag.man{background:#eef1f5;color:var(--muted)}
+  .h-num{width:70px;padding:3px 6px;border:1px dashed var(--line);background:transparent}
+  .h-num:focus{border-style:solid;background:#fff}
+  .pay{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .pay .st{font-size:12px;font-weight:700;border-radius:999px;padding:2px 9px;white-space:nowrap}
+  .pay .st.paid{background:#e3f4ea;color:#1e6b3a}
+  .pay .st.sched{background:#e8f0f8;color:#1f4e79}
+  .pay .st.pend{background:#fde2e1;color:#8c1d18}
+  .pay small{color:var(--muted);font-size:11px}
+  .pay button{border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;padding:2px 8px;font-size:12px;color:var(--accent);font-weight:600}
+  .pay-opts{display:flex;gap:8px;margin:8px 0}
+  .pay-opts label{flex:1;border:2px solid var(--line);border-radius:10px;padding:10px;cursor:pointer;text-transform:none;font-size:14px;color:var(--ink);letter-spacing:0;display:flex;gap:8px;align-items:center}
+  .pay-opts label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+  .pay-opts input{width:auto}
+  .tag.done{background:#e3f4ea;color:#1e6b3a}
+  .kpi.prev{background:#e3f4ea}
+  .h-actions button{border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;padding:3px 8px;font-size:12px;color:var(--accent);font-weight:600}
+  .h-actions button.del{color:var(--danger)}
+  .h-add{margin-top:16px;font-size:13px}
+  .h-add summary{cursor:pointer;color:var(--accent);font-weight:600}
+  .h-add .grid{max-width:900px;margin-top:10px;align-items:end}
+  @media print{ .history,.modal-bg,.sync,.upd-banner{display:none!important} }
+  .modal-body input.tk{width:100%;font-family:monospace;font-size:14px;padding:9px 10px;margin:6px 0}
+  .linkbox{display:flex;gap:6px;margin:8px 0}
+  .linkbox input{flex:1;font-family:monospace;font-size:13px}
+  .linkbox button{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:6px;padding:0 12px;font-weight:600;cursor:pointer}
+  .upd-banner{position:sticky;top:52px;z-index:4;background:#fff3c4;color:#6b4e00;padding:10px 16px;text-align:center;font-weight:600;display:none}
+  .upd-banner button,.upd-banner a{margin-left:10px;background:#6b4e00;color:#fff;border:0;border-radius:6px;padding:5px 12px;font-weight:700;cursor:pointer;text-decoration:none}
+  .steps{margin:6px 0 10px;padding-left:20px}
+  .steps li{margin:3px 0}
+  @media (max-width:700px){ .toolbar h1{font-size:14px;width:100%} .toolbar button{padding:6px 9px;font-size:13px} }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <h1>Ricardo Saes - Translations - Invoice Generator</h1>
+  <span class="sync" id="syncPill" role="status"><span class="dot"></span><span id="syncText">Salvo neste navegador</span></span>
+  <span class="sync warn" id="cloudPill" role="status" title="Sincronização entre dispositivos (GitHub)"><span class="dot"></span><span id="cloudText">Conectar nuvem</span></span>
+  <button class="ghost" id="btnLists">Gerenciar listas</button>
+  <button class="ghost" id="btnNew">Novo invoice</button>
+  <button class="ghost" id="btnCsv">Exportar CSV</button>
+  <button class="ghost" id="btnBackup">Salvar backup</button>
+  <button class="ghost" id="btnRestore">Restaurar backup</button>
+  <input type="file" id="fileRestore" style="display:none">
+  <button class="ghost" id="btnUpdate" title="Sincroniza agora e procura versão nova">⟳ Atualizar</button>
+  <button class="ghost" id="btnShare" title="Link para outra pessoa ver o relatório">🔗 Link do relatório</button>
+  <button id="btnPrint">Imprimir / Salvar PDF</button>
+</div>
+
+<!-- Painel para adicionar/remover opções -->
+<div class="upd-banner" id="updBanner"></div>
+
+<section class="lists" id="listsPanel">
+  <div class="cols">
+    <div><label>Clientes</label><div class="inline"><input id="newClientes" placeholder="Novo cliente"><button class="add-row" data-add="clientes">Adicionar</button></div><div class="chips" id="chips-clientes"></div></div>
+    <div><label>Idiomas</label><div class="inline"><input id="newIdiomas" placeholder="Ex.: Francês/Inglês"><button class="add-row" data-add="idiomas">Adicionar</button></div><div class="chips" id="chips-idiomas"></div></div>
+    <div><label>Tipos de documento</label><div class="inline"><input id="newTipos" placeholder="Novo tipo"><button class="add-row" data-add="tipos">Adicionar</button></div><div class="chips" id="chips-tipos"></div></div>
+    <div><label>Valores por página (R$)</label><div class="inline"><input id="newValores" type="number" min="0" step="1" placeholder="Ex.: 85"><button class="add-row" data-add="valores">Adicionar</button></div><div class="chips" id="chips-valores"></div></div>
+  </div>
+</section>
+
+<main class="paper">
+  <div class="head">
+    <div>
+      <h2>INVOICE</h2>
+      <div class="grid" style="margin-top:10px;max-width:420px">
+        <div><label>Nº do invoice</label><input id="invNumber" data-save></div>
+        <div><label>Data de emissão</label><input id="invDate" type="date" data-save></div>
+      </div>
+    </div>
+    <div class="box" style="min-width:320px">
+      <h3>Período de referência</h3>
+      <div class="grid">
+        <div><label>Mês</label><select id="month" data-save></select></div>
+        <div><label>Ano</label><select id="year" data-save></select></div>
+      </div>
+      <div class="period" id="periodText"></div>
+    </div>
+  </div>
+
+  <div class="parties">
+    <div class="box">
+      <h3>Prestador (tradutor)</h3>
+      <div class="grid">
+        <div style="grid-column:1/-1"><label>Nome</label><input id="fromName" data-save></div>
+        <div><label>CPF / CNPJ</label><input id="fromDoc" data-save></div>
+        <div><label>E-mail / Telefone</label><input id="fromContact" data-save></div>
+      </div>
+    </div>
+    <div class="box">
+      <h3>Faturar para (empresa)</h3>
+      <div class="grid">
+        <div style="grid-column:1/-1"><label>Empresa</label><input id="toName" data-save></div>
+        <div><label>CNPJ</label><input id="toDoc" data-save></div>
+        <div><label>Contato</label><input id="toContact" data-save></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="items">
+      <thead>
+        <tr>
+          <th>#</th><th>Cliente</th><th>Idioma</th><th>Tipo de tradução</th>
+          <th>Nº págs.</th><th>Valor/pág.</th><th>Solicitação</th><th>Prazo entrega</th><th>Entregue em</th><th>Valor final</th><th class="no-print"></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <button class="add-row" id="btnAddRow">+ Adicionar documento</button>
+
+  <div class="summary-row">
+  <div class="by-client">
+    <h3>Total por cliente</h3>
+    <table>
+      <thead><tr><th>Cliente</th><th style="text-align:right">Documentos</th><th style="text-align:right">Páginas</th><th style="text-align:right">Valor</th></tr></thead>
+      <tbody id="byClient"></tbody>
+    </table>
+  </div>
+  <div class="donut-card" id="donutCard">
+    <h3>Distribuição por cliente</h3>
+    <div class="donut-wrap">
+      <div class="donut-box">
+        <svg id="donut" viewBox="0 0 200 200" role="img" aria-label="Gráfico de rosca: valor por cliente"></svg>
+        <div class="donut-center"><span class="dc-label" id="dcLabel">Total</span><span class="dc-value" id="dcValue">R$ 0,00</span><span class="dc-sub" id="dcSub"></span></div>
+      </div>
+      <ul class="donut-legend" id="donutLegend"></ul>
+    </div>
+  </div>
+  </div>
+
+  <div class="totals">
+    <table>
+      <tr><td>Documentos</td><td class="num" id="totDocs">0</td></tr>
+      <tr><td>Total de páginas</td><td class="num" id="totPages">0</td></tr>
+      <tr class="grand"><td>TOTAL A PAGAR</td><td class="num" id="totValue">R$ 0,00</td></tr>
+    </table>
+  </div>
+
+  <div class="notes grid">
+    <div><label>Dados para pagamento (PIX / Banco)</label><textarea id="payInfo" data-save></textarea></div>
+    <div><label>Observações</label><textarea id="notes" data-save></textarea></div>
+  </div>
+
+  <section class="notes-page" id="notesPage">
+    <header class="np-head">
+      <div>
+        <div class="np-brand" id="npBrand"></div>
+        <div class="np-kicker">Translations · Invoice</div>
+      </div>
+      <div class="np-meta">
+        <div><span>Invoice Nº</span><strong id="npNumber">—</strong></div>
+        <div><span>Referência</span><strong id="npPeriod"></strong></div>
+        <div><span>Emissão</span><strong id="npDate"></strong></div>
+      </div>
+    </header>
+
+    <h2 class="np-title">Observações &amp; pagamento</h2>
+    <p class="np-sub" id="npSub"></p>
+
+    <div class="np-grid">
+      <div class="np-card np-pay">
+        <h4><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Dados para pagamento</h4>
+        <div class="np-text" id="npPay"></div>
+      </div>
+      <div class="np-card np-sum">
+        <h4><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Resumo</h4>
+        <dl>
+          <div><dt>Documentos</dt><dd id="npDocs"></dd></div>
+          <div><dt>Páginas</dt><dd id="npPages"></dd></div>
+          <div><dt>Clientes</dt><dd id="npClients"></dd></div>
+        </dl>
+        <div class="np-total"><span>Total a pagar</span><strong id="npTotal"></strong></div>
+      </div>
+    </div>
+
+    <div class="np-card np-notes">
+      <h4><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h10l4 4v12H5zM15 4v4h4M8 12h8M8 16h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Observações</h4>
+      <div class="np-text np-lined" id="npNotes"></div>
+    </div>
+
+    <footer class="np-foot">
+      <div class="np-sign"><span class="np-line"></span><span id="npSignName"></span><small>Tradutor</small></div>
+      <div class="np-thanks">Obrigado pela parceria!</div>
+    </footer>
+  </section>
+</main>
+
+<section class="history" id="history">
+  <h2>Histórico de traduções</h2>
+  <p class="h-sub" id="hSub"></p>
+  <div class="kpis" id="hKpis"></div>
+  <div class="h-legend"><span><i style="background:var(--accent)"></i>Mês fechado</span><span><i style="background:repeating-linear-gradient(45deg,#7fa6cc 0 3px,#a9c4de 3px 6px)"></i>Mês em andamento</span></div>
+  <div class="h-chart"><svg id="hChart" role="img" aria-label="Faturamento por mês"></svg><div class="h-tip" id="hTip"></div></div>
+  <div class="table-wrap">
+    <table class="h-table">
+      <thead><tr><th>Mês</th><th>Invoice Nº</th><th class="r">Documentos</th><th class="r">Páginas</th><th class="r">Valor</th><th>Pagamento</th><th></th></tr></thead>
+      <tbody id="hRows"></tbody>
+    </table>
+  </div>
+  <details class="h-add">
+    <summary>+ Adicionar um mês anterior manualmente</summary>
+    <div class="grid">
+      <div><label>Mês</label><select id="hmMonth"></select></div>
+      <div><label>Ano</label><input id="hmYear" type="number" value="2026"></div>
+      <div><label>Valor total (R$)</label><input id="hmTotal" type="number" min="0" step="0.01"></div>
+      <div><label>Documentos</label><input id="hmDocs" type="number" min="0"></div>
+      <div><label>Páginas</label><input id="hmPages" type="number" min="0"></div>
+      <div><button class="add-row" id="hmAdd" style="margin:0">Adicionar ao histórico</button></div>
+    </div>
+    <p style="margin:14px 0 6px">Ou importe um backup antigo (.json) — o mês é detectado pelas datas de solicitação:</p>
+    <button class="add-row" id="hmImport" style="margin:0">Importar backup de mês anterior</button>
+    <input type="file" id="hmFile" accept=".json,application/json" style="display:none">
+  </details>
+</section>
+
+<div class="modal-bg" id="modalBg"><div class="modal" role="dialog" aria-modal="true">
+  <div class="modal-top"><span class="ico" id="mIco"></span><h3 id="mTitle"></h3></div>
+  <div class="modal-body" id="mBody"></div>
+  <div class="modal-actions" id="mActions"></div>
+</div></div>
+
+<script>
+const MONTHS = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const DEFAULT_LISTS = {
+  clientes: [],
+  idiomas: ["Português/Inglês","Inglês/Português","Espanhol/Inglês","Inglês/Espanhol","Espanhol/Português","Português/Espanhol"],
+  tipos: [
+    "Comprovante de endereço","Extrato bancário","Diploma","Histórico escolar","Contrato","Contrato de aluguel",
+    "Carta (diversas)","Certidão de nascimento","Certidão de casamento","Certidão de divórcio","Certidão de óbito",
+    "Averbação","RG","CNH","Passaporte","Carteira profissional (CTPS)","E-mails","Correspondência","Laudo",
+    "Laudo médico","Receita / prontuário médico","Documento do carro (CRLV)","Declaração de imposto de renda",
+    "Holerite / contracheque","Carta de referência / emprego","Procuração","Escritura","Antecedentes criminais",
+    "Certificado / curso","Boletim de ocorrência","Sentença judicial"
+  ],
+  valores: [35,45,55,65,75]
+};
+const KEY = "invoiceTraducao.v1";
+const fmt = v => v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const $ = id => document.getElementById(id);
+
+// ---------- Estado ----------
+let state = load() || { lists: structuredClone(DEFAULT_LISTS), fields:{}, rows:[] };
+function load(){ try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; } }
+let storageOk = true;
+function save(opts){
+  if(!(opts && opts.silent)) state.savedAt = Date.now();
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); storageOk = true; }catch(e){ storageOk = false; }
+  scheduleFileWrite();
+  if(typeof cloudSchedule === "function") cloudSchedule();
+  if(typeof renderHistory === "function" && window._ready) renderHistory();
+}
+function showMsg(text, ok){
+  let m = $("msg");
+  if(!m){ m = document.createElement("div"); m.id="msg"; m.style.cssText="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);padding:10px 16px;border-radius:8px;color:#fff;font-weight:600;z-index:99;box-shadow:0 2px 10px rgba(0,0,0,.2);max-width:90vw"; document.body.appendChild(m); }
+  m.style.background = ok ? "#2e7d32" : "#b3261e"; m.textContent = text; m.style.display="block";
+  clearTimeout(m._t); m._t = setTimeout(()=> m.style.display="none", ok ? 3500 : 9000);
+}
+
+// ---------- Cabeçalho ----------
+function initHeader(){
+  const now = new Date();
+  MONTHS.forEach((m,i)=> $("month").add(new Option(m,i)));
+  for(let y=now.getFullYear()-3; y<=now.getFullYear()+2; y++) $("year").add(new Option(y,y));
+  $("month").value = now.getMonth(); $("year").value = now.getFullYear();
+  $("invDate").value = now.toISOString().slice(0,10);
+
+  document.querySelectorAll("[data-save]").forEach(el=>{
+    if(state.fields[el.id] !== undefined) el.value = state.fields[el.id];
+    el.addEventListener("input", ()=>{ state.fields[el.id]=el.value; save(); if(el.id==="month"||el.id==="year") updatePeriod(); });
+  });
+  updatePeriod();
+}
+function updatePeriod(){
+  const m = +$("month").value, y = +$("year").value;
+  const last = new Date(y, m+1, 0).getDate();
+  const mm = String(m+1).padStart(2,"0");
+  $("periodText").textContent = `${MONTHS[m]} / ${y} — Período: 01/${mm}/${y} a ${last}/${mm}/${y}`;
+}
+
+// ---------- Linhas ----------
+function newRow(){ return {cliente:"",idioma:"",tipo:"",paginas:1,valor:state.lists.valores[0]||0,solicitacao:"",prazo:"",entregue:""}; }
+
+const ADD_NEW = "__add_new__";
+function optionsHTML(list, selected, isMoney, addLabel){
+  let h = `<option value="">— selecione —</option>`;
+  list.forEach(v=>{ h += `<option value="${esc(v)}" ${String(v)===String(selected)?"selected":""}>${isMoney?fmt(+v):esc(v)}</option>`; });
+  if(selected && !list.map(String).includes(String(selected))) h += `<option selected value="${esc(selected)}">${isMoney?fmt(+selected):esc(selected)}</option>`;
+  if(addLabel) h += `<option value="${ADD_NEW}">${addLabel}</option>`;
+  return h;
+}
+// ---------- Bandeiras ----------
+const FLAGS = {
+  br: `<svg class="flag" viewBox="0 0 30 21" aria-label="Português"><rect width="30" height="21" fill="#009c3b"/><path d="M15 2.5 27.5 10.5 15 18.5 2.5 10.5z" fill="#ffdf00"/><circle cx="15" cy="10.5" r="5" fill="#002776"/><path d="M10.2 9.4c3-.7 6.6-.3 9.6 1.6" stroke="#fff" stroke-width=".9" fill="none"/></svg>`,
+  us: `<svg class="flag" viewBox="0 0 30 21" aria-label="Inglês"><rect width="30" height="21" fill="#fff"/>${[0,2,4,6,8,10,12].map(i=>`<rect y="${i*21/13}" width="30" height="${21/13}" fill="#b22234"/>`).join("")}<rect width="12.5" height="${21*7/13}" fill="#3c3b6e"/>${[[2,2],[5,2],[8,2],[11,2],[3.5,4.3],[6.5,4.3],[9.5,4.3],[2,6.6],[5,6.6],[8,6.6],[11,6.6],[3.5,8.9],[6.5,8.9],[9.5,8.9]].map(([x,y])=>`<circle cx="${x-0.5}" cy="${y-0.6}" r=".55" fill="#fff"/>`).join("")}</svg>`,
+  es: `<svg class="flag" viewBox="0 0 30 21" aria-label="Espanhol"><rect width="30" height="21" fill="#aa151b"/><rect y="5.25" width="30" height="10.5" fill="#f1bf00"/></svg>`
+};
+function langFlag(name){
+  const n = name.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  if(n.startsWith("portugu")) return FLAGS.br;
+  if(n.startsWith("ingl") || n.startsWith("english")) return FLAGS.us;
+  if(n.startsWith("espanh") || n.startsWith("spanish") || n.startsWith("espanol")) return FLAGS.es;
+  return `<span>${esc(name.trim())}</span>`;
+}
+function flagsHTML(v){
+  if(!v) return `<span class="lang-empty">— selecione —</span>`;
+  return v.split("/").map(langFlag).join(`<span class="lang-sep">/</span>`);
+}
+function pvText(f, v){
+  if(["solicitacao","prazo","entregue"].includes(f)){
+    if(!v) return "—"; const [y,m,d] = v.split("-"); return `${d}/${m}/${y}`;
+  }
+  if(f==="valor") return v ? fmt(+v) : "—";
+  return v ?? "";
+}
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+// Ordena pela data de solicitação (mais antiga primeiro); linhas sem data ficam no fim
+function sortRows(){
+  const before = state.rows.slice();
+  state.rows = state.rows.map((r,i)=>({r,i})).sort((a,b)=>{
+    const da = a.r.solicitacao || "9999", db = b.r.solicitacao || "9999";
+    return da < db ? -1 : da > db ? 1 : a.i - b.i;
+  }).map(x=>x.r);
+  return state.rows.some((r,i)=>r!==before[i]);
+}
+function flashRow(obj){
+  const idx = state.rows.indexOf(obj), tr = document.querySelectorAll("#items tbody tr")[idx];
+  if(tr){ tr.classList.add("flash"); setTimeout(()=>tr.classList.remove("flash"),1200); tr.scrollIntoView({block:"nearest", behavior:"smooth"}); }
+}
+function render(){
+  if(sortRows()) save();
+  const tb = document.querySelector("#items tbody");
+  tb.innerHTML = "";
+  state.rows.forEach((r,i)=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${i+1}</td>
+      <td class="col-cliente has-pv"><input data-f="cliente" list="dl-clientes" placeholder="Digite ou escolha o nome" value="${esc(r.cliente)}" title="${esc(r.cliente)}"><span class="pv">${esc(r.cliente)}</span></td>
+      <td class="col-idioma"><div class="lang-box" title="${esc(r.idioma)}"><span class="lang-view">${flagsHTML(r.idioma)}</span><select data-f="idioma">${optionsHTML(state.lists.idiomas,r.idioma,false,"➕ Adicionar novo idioma...")}</select></div></td>
+      <td class="col-tipo has-pv"><select data-f="tipo" title="${esc(r.tipo)}">${optionsHTML(state.lists.tipos,r.tipo,false,"➕ Adicionar novo tipo de documento...")}</select><span class="pv">${esc(r.tipo)}</span></td>
+      <td class="col-pag has-pv"><input type="number" min="0" step="1" data-f="paginas" value="${r.paginas}"><span class="pv">${pvText("paginas",r.paginas)}</span></td>
+      <td class="col-valor has-pv"><select data-f="valor">${optionsHTML(state.lists.valores,r.valor,true)}</select><span class="pv">${pvText("valor",r.valor)}</span></td>
+      <td class="col-data has-pv"><input type="date" data-f="solicitacao" value="${r.solicitacao}"><span class="pv">${pvText("solicitacao",r.solicitacao)}</span></td>
+      <td class="col-data has-pv"><input type="date" data-f="prazo" value="${r.prazo}"><span class="pv">${pvText("prazo",r.prazo)}</span></td>
+      <td class="col-data has-pv"><input type="date" data-f="entregue" value="${r.entregue}"><span class="pv">${pvText("entregue",r.entregue)}</span></td>
+      <td class="num" data-sub>${fmt((+r.paginas||0)*(+r.valor||0))}</td>
+      <td class="no-print"><div class="row-actions"><button class="icon-btn dup" title="Duplicar esta linha" data-dup>⧉</button><button class="icon-btn del" title="Remover" data-del>×</button></div></td>`;
+    tr.querySelectorAll("[data-f]").forEach(el=>{
+      if(el.dataset.f==="cliente") el.addEventListener("change", ()=>{
+        const v = el.value.trim();
+        if(v){ addToList("clientes", v); renderLists(); renderDatalist(); }
+      });
+      el.addEventListener("input", ()=>{
+        if(el.value === ADD_NEW){
+          const list = el.dataset.f==="tipo" ? "tipos" : "idiomas";
+          const v = prompt(list==="tipos" ? "Nome do novo tipo de documento:" : "Novo idioma (ex.: Francês/Inglês):");
+          if(v && v.trim()){ addToList(list, v.trim()); r[el.dataset.f] = v.trim(); renderLists(); }
+          save(); render(); return;
+        }
+        r[el.dataset.f] = el.value; save();
+        const pv = el.parentElement.querySelector(".pv"); if(pv) pv.textContent = pvText(el.dataset.f, el.value);
+        if(el.dataset.f==="idioma"){ el.closest(".lang-box").querySelector(".lang-view").innerHTML = flagsHTML(el.value); el.closest(".lang-box").title = el.value; }
+        el.title = el.value;
+        tr.querySelector("[data-sub]").textContent = fmt((+r.paginas||0)*(+r.valor||0));
+        totals();
+      });
+    });
+    // ao sair do campo de solicitação, reposiciona a linha na ordem certa
+    tr.querySelector("input[data-f=solicitacao]").addEventListener("blur", ()=>{
+      setTimeout(()=>{
+        if(document.activeElement && tr.contains(document.activeElement)) return;
+        const pos = state.rows.indexOf(r);
+        if(sortRows() && state.rows.indexOf(r) !== pos){ save(); render(); flashRow(r); }
+      }, 0);
+    });
+    tr.querySelector("[data-del]").onclick = ()=>{ state.rows.splice(i,1); save(); render(); };
+    tr.querySelector("[data-dup]").onclick = ()=>{
+      state.rows.splice(i+1, 0, {...r}); save(); render();
+      const nt = document.querySelectorAll("#items tbody tr")[i+1];
+      if(nt){ nt.classList.add("flash"); setTimeout(()=>nt.classList.remove("flash"),1200); nt.querySelector("select[data-f=tipo]")?.focus(); }
+    };
+    tb.appendChild(tr);
+  });
+  totals();
+}
+function totals(){
+  let pages=0, value=0;
+  state.rows.forEach(r=>{ pages += +r.paginas||0; value += (+r.paginas||0)*(+r.valor||0); });
+  $("totDocs").textContent = state.rows.length;
+  $("totPages").textContent = pages;
+  $("totValue").textContent = fmt(value);
+
+  const groups = {};
+  state.rows.forEach(r=>{
+    const name = (r.cliente||"").trim() || "(sem nome)";
+    const g = groups[name] ||= {docs:0,pages:0,value:0};
+    g.docs++; g.pages += +r.paginas||0; g.value += (+r.paginas||0)*(+r.valor||0);
+  });
+  const names = Object.keys(groups).sort((a,b)=>a.localeCompare(b,"pt-BR"));
+  const colorOf = {}; names.forEach((n,i)=> colorOf[n] = i < SERIES.length ? SERIES[i] : OTHER_COLOR);
+  $("byClient").innerHTML = names.map(n=>
+    `<tr><td><span class="cdot" style="background:${colorOf[n]}"></span>${esc(n)}</td><td>${groups[n].docs}</td><td>${groups[n].pages}</td><td>${fmt(groups[n].value)}</td></tr>`
+  ).join("");
+  drawDonut(names, groups, colorOf, value);
+}
+
+// ---------- Gráfico de rosca ----------
+// Paleta categórica (ordem fixa; a cor segue o cliente, não a posição no ranking)
+const SERIES = ["#2a78d6","#eb6834","#1baf7a","#eda100","#e87ba4","#008300","#4a3aa7","#e34948"];
+const OTHER_COLOR = "#9aa1ad";
+function drawDonut(names, groups, colorOf, total){
+  const svg = $("donut"), legend = $("donutLegend"), box = svg.parentElement;
+  const R = 78, C = 2*Math.PI*R, GAP = 2;
+  // até 8 clientes com cor própria; o resto vira "Outros"
+  let items = names.slice(0, SERIES.length).map(n=>({name:n, color:colorOf[n], ...groups[n]}));
+  const rest = names.slice(SERIES.length);
+  if(rest.length){
+    const o = {name:`Outros (${rest.length})`, color:OTHER_COLOR, docs:0, pages:0, value:0};
+    rest.forEach(n=>{ o.docs+=groups[n].docs; o.pages+=groups[n].pages; o.value+=groups[n].value; });
+    items.push(o);
+  }
+  items = items.filter(it=>it.value>0);
+  const setCenter = it=>{
+    $("dcLabel").textContent = it ? it.name : "Total";
+    $("dcValue").textContent = fmt(it ? it.value : total);
+    $("dcSub").textContent = it ? pct(it.value,total) : (items.length ? `${items.length} cliente${items.length>1?"s":""}` : "");
+  };
+  if(!items.length || total<=0){
+    svg.innerHTML = `<circle cx="100" cy="100" r="${R}" fill="none" stroke="#e6e9ef" stroke-width="24"/>`;
+    legend.innerHTML = `<li class="donut-empty">Preencha os documentos para ver o gráfico.</li>`;
+    setCenter(null); return;
+  }
+  let offset = 0, html = `<circle cx="100" cy="100" r="${R}" fill="none" stroke="#eef1f5" stroke-width="24"/>`;
+  items.forEach((it,i)=>{
+    const len = it.value/total*C;
+    const dash = items.length>1 ? Math.max(len-GAP, 0.5) : C;
+    html += `<circle class="seg" data-i="${i}" cx="100" cy="100" r="${R}" fill="none" stroke="${it.color}" stroke-width="24"
+      stroke-dasharray="${dash} ${C-dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 100 100)"><title>${esc(it.name)}: ${fmt(it.value)} (${pct(it.value,total)})</title></circle>`;
+    offset += len;
+  });
+  svg.innerHTML = html;
+  legend.innerHTML = items.map((it,i)=>`<li data-i="${i}"><span class="sw" style="background:${it.color}"></span><span class="nm" title="${esc(it.name)}">${esc(it.name)}</span><span class="pc">${pct(it.value,total)}</span><span class="vl">${fmt(it.value)} · ${it.docs} doc. · ${it.pages} pág.</span></li>`).join("");
+  setCenter(null);
+  const highlight = i=>{
+    box.classList.toggle("hovering", i!=null);
+    svg.querySelectorAll(".seg").forEach(c=>c.classList.toggle("on", c.dataset.i==i));
+    legend.querySelectorAll("li").forEach(l=>l.classList.toggle("on", l.dataset.i==i));
+    setCenter(i!=null ? items[i] : null);
+  };
+  svg.querySelectorAll(".seg").forEach(c=>{ c.onmouseenter=()=>highlight(c.dataset.i); c.onmouseleave=()=>highlight(null); });
+  legend.querySelectorAll("li").forEach(l=>{ l.onmouseenter=()=>highlight(l.dataset.i); l.onmouseleave=()=>highlight(null); });
+}
+function pct(v,t){ return (t>0 ? (v/t*100) : 0).toLocaleString("pt-BR",{maximumFractionDigits:1}) + "%"; }
+
+// ---------- Listas ----------
+function addToList(name, v){
+  if(name==="valores"){ v = +v; if(!(v>0)) return; }
+  if(state.lists[name].map(String).includes(String(v))) return;
+  state.lists[name].push(v);
+  if(name==="valores") state.lists.valores.sort((a,b)=>a-b);
+  else state.lists[name].sort((a,b)=>String(a).localeCompare(String(b),"pt-BR"));
+  save();
+}
+function renderDatalist(){
+  let dl = $("dl-clientes");
+  if(!dl){ dl = document.createElement("datalist"); dl.id = "dl-clientes"; document.body.appendChild(dl); }
+  dl.innerHTML = state.lists.clientes.map(c=>`<option value="${esc(c)}">`).join("");
+}
+function renderLists(){
+  renderDatalist();
+  ["clientes","idiomas","tipos","valores"].forEach(name=>{
+    const box = $("chips-"+name); box.innerHTML="";
+    state.lists[name].forEach((v,i)=>{
+      const c = document.createElement("span"); c.className="chip";
+      c.innerHTML = `${name==="valores"?fmt(+v):esc(v)}<button title="Remover">×</button>`;
+      c.querySelector("button").onclick = ()=>{ state.lists[name].splice(i,1); save(); renderLists(); render(); };
+      box.appendChild(c);
+    });
+  });
+}
+document.querySelectorAll("[data-add]").forEach(b=> b.onclick = ()=>{
+  const name = b.dataset.add, inp = $("new"+name[0].toUpperCase()+name.slice(1));
+  if(inp.value.trim()){ addToList(name, inp.value.trim()); inp.value=""; renderLists(); render(); }
+});
+document.querySelectorAll(".lists input").forEach(inp=> inp.addEventListener("keydown",e=>{ if(e.key==="Enter") inp.nextElementSibling.click(); }));
+
+// ---------- Botões ----------
+$("btnAddRow").onclick = ()=>{ state.rows.push(newRow()); save(); render(); };
+$("btnLists").onclick = ()=> $("listsPanel").classList.toggle("open");
+$("btnPrint").onclick = ()=> window.print();
+$("btnNew").onclick = ()=>{
+  const inv = invKey(), cur = curKey();
+  const target = inv < cur ? cur : addMonth(inv, 1);
+  const sm = summarize(state.rows);
+  openModal({
+    ico:"🗂️", title:`Fechar ${keyLabel(inv)} e começar ${keyLabel(target)}?`,
+    body:`<p>O invoice atual vai para o <b>Histórico de traduções</b>, lá no final da página, e a tabela fica limpa para o novo mês.</p>
+      <div class="hl"><span>${keyLabel(inv)} · ${sm.docs} doc. · ${sm.pages} pág.</span><span>${fmt(sm.total)}</span></div>
+      <small>Seus dados de prestador, empresa, pagamento e as listas continuam salvos. Gere o PDF antes, se ainda não gerou.</small>`,
+    buttons:[
+      {label:"Cancelar"},
+      {label:"Gerar PDF primeiro", onClick:()=>{ updateNotesPage(); setTimeout(()=>window.print(),100); }},
+      {label:`Sim, começar ${keyLabel(target)}`, primary:true, onClick:()=>startNewMonth(target)}
+    ]
+  });
+};
+$("btnBackup").onclick = ()=>{
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = `backup_invoice_${MONTHS[$("month").value]}_${$("year").value}.json`; a.click();
+};
+$("btnRestore").onclick = ()=> $("fileRestore").click();
+$("fileRestore").onchange = e=>{
+  const f = e.target.files[0]; e.target.value = ""; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    let s;
+    try{ s = JSON.parse(String(reader.result).replace(/^\uFEFF/,"")); }
+    catch(err){ showMsg("Esse arquivo não é um backup válido. Escolha o arquivo backup_invoice_....json", false); return; }
+    if(!s || !Array.isArray(s.rows)){ showMsg("Esse arquivo não parece ser um backup do invoice.", false); return; }
+    applyState(s);
+    showMsg(`Backup restaurado: ${s.rows.length} documento(s).`, true);
+  };
+  reader.onerror = ()=> showMsg("Não consegui ler o arquivo.", false);
+  reader.readAsText(f, "utf-8");
+};
+function applyState(s, opts){
+  state = Object.assign({}, s, {
+    lists: Object.assign(structuredClone(DEFAULT_LISTS), s.lists || {}),
+    fields: s.fields || {},
+    rows: s.rows.length ? s.rows : [newRow()],
+    history: s.history || []
+  });
+  document.querySelectorAll("[data-save]").forEach(el=>{ if(state.fields[el.id] !== undefined) el.value = state.fields[el.id]; });
+  updatePeriod(); renderLists(); render(); save(opts && opts.keepTime ? {silent:true} : undefined); updateNotesPage(); document.querySelectorAll(".notes textarea").forEach(autoGrow);
+  renderHistory();
+  if(!storageOk) showMsg("Restaurado, mas este navegador não está salvando automaticamente. Use 'Salvar backup' antes de fechar.", false);
+}
+$("btnCsv").onclick = ()=> downloadCsv(state.rows, `invoice_${MONTHS[$("month").value]}_${$("year").value}.csv`);
+const _oldCsv = ()=>{
+  const head = ["#","Cliente","Idioma","Tipo","Paginas","Valor/pag","Solicitacao","Prazo","Entregue","Valor final"];
+  const lines = [head.join(";")];
+  state.rows.forEach((r,i)=> lines.push([i+1,r.cliente,r.idioma,r.tipo,r.paginas,r.valor,r.solicitacao,r.prazo,r.entregue,((+r.paginas||0)*(+r.valor||0)).toFixed(2).replace(".",",")].map(x=>`"${String(x).replace(/"/g,'""')}"`).join(";")));
+  const blob = new Blob(["﻿"+lines.join("\n")],{type:"text/csv"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = `invoice_${MONTHS[$("month").value]}_${$("year").value}.csv`; a.click();
+};
+
+// ---------- Folha de observações ----------
+function fmtDate(v){ if(!v) return "—"; const [y,m,d]=v.split("-"); return `${d}/${m}/${y}`; }
+function updateNotesPage(){
+  const pay = $("payInfo").value.trim(), notes = $("notes").value.trim();
+  $("notesPage").classList.toggle("has-content", !!(pay || notes));
+  const name = $("fromName").value.trim() || "Ricardo Saes";
+  $("npBrand").textContent = name;
+  $("npSignName").textContent = name;
+  $("npNumber").textContent = $("invNumber").value.trim() || "—";
+  const m = +$("month").value, y = +$("year").value, last = new Date(y,m+1,0).getDate(), mm = String(m+1).padStart(2,"0");
+  $("npPeriod").textContent = `${MONTHS[m]} / ${y}`;
+  $("npDate").textContent = fmtDate($("invDate").value);
+  $("npSub").textContent = `${$("toName").value.trim() || "Cliente"} · Período de 01/${mm}/${y} a ${last}/${mm}/${y}`;
+  $("npPay").textContent = pay || "—";
+  $("npNotes").textContent = notes;
+  let pages=0, value=0; const clients = new Set();
+  state.rows.forEach(r=>{ pages += +r.paginas||0; value += (+r.paginas||0)*(+r.valor||0); clients.add((r.cliente||"").trim()||"(sem nome)"); });
+  $("npDocs").textContent = state.rows.length; $("npPages").textContent = pages; $("npClients").textContent = clients.size;
+  $("npTotal").textContent = fmt(value);
+}
+function autoGrow(t){ t.style.height = "auto"; t.style.height = (t.scrollHeight + 2) + "px"; }
+document.querySelectorAll(".notes textarea").forEach(t=>{ t.addEventListener("input", ()=>autoGrow(t)); });
+window.addEventListener("beforeprint", updateNotesPage);
+$("btnPrint").addEventListener("click", updateNotesPage, true);
+
+// ---------- Meses / histórico ----------
+const keyOf = (y,m)=> `${y}-${String(m+1).padStart(2,"0")}`;
+const keyParts = k=>{ const [y,m]=k.split("-").map(Number); return {y, m:m-1}; };
+const keyLabel = k=>{ const {y,m}=keyParts(k); return `${MONTHS[m]}/${y}`; };
+const keyShort = k=>{ const {y,m}=keyParts(k); return `${MONTHS[m].slice(0,3)}/${String(y).slice(2)}`; };
+const addMonth = (k,n)=>{ const {y,m}=keyParts(k); const d=new Date(y,m+n,1); return keyOf(d.getFullYear(),d.getMonth()); };
+const curKey = ()=>{ const d=new Date(); return keyOf(d.getFullYear(), d.getMonth()); };
+const invKey = ()=> keyOf(+$("year").value, +$("month").value);
+const todayISO = ()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
+const PROJECT_START = "2026-09";
+
+function summarize(rows){
+  let docs=0, pages=0, total=0; const clients={};
+  rows.forEach(r=>{
+    const v=(+r.paginas||0)*(+r.valor||0);
+    if(!v && !r.cliente && !r.tipo) return;
+    docs++; pages+=+r.paginas||0; total+=v;
+    const n=(r.cliente||"").trim()||"(sem nome)"; clients[n]=(clients[n]||0)+v;
+  });
+  return {docs,pages,total,clients};
+}
+function archiveCurrent(){
+  const key = invKey(), sm = summarize(state.rows);
+  if(!sm.docs) return;
+  state.history = state.history || [];
+  const entry = {key, invNumber:state.fields.invNumber||"", ...sm, rows:structuredClone(state.rows), notes:state.fields.notes||"", closedAt:new Date().toISOString()};
+  const i = state.history.findIndex(h=>h.key===key);
+  if(i>=0){
+    const old = state.history[i];
+    const rows = (old.rows||[]).concat(entry.rows);
+    state.history[i] = {...entry, rows, ...summarize(rows), manual:false, docs: summarize(rows).docs + (old.manual?old.docs:0), total: summarize(rows).total + (old.manual?old.total:0), pages: summarize(rows).pages + (old.manual?old.pages:0)};
+  } else state.history.push(entry);
+  state.history.sort((a,b)=>a.key.localeCompare(b.key));
+}
+function startNewMonth(target, newNumber, quiet){
+  archiveCurrent();
+  const {y,m} = keyParts(target);
+  state.rows = [newRow()];
+  const n = parseInt(state.fields.invNumber,10);
+  const num = newNumber !== undefined ? newNumber : (isNaN(n) ? "" : String(n+1));
+  Object.assign(state.fields, {month:String(m), year:String(y), invDate:todayISO(), notes:"", invNumber: num});
+  delete state.rolloverSnooze;
+  ["month","year","invDate","notes","invNumber"].forEach(id=>{ $(id).value = state.fields[id]; });
+  updatePeriod(); render(); save(); updateNotesPage(); document.querySelectorAll(".notes textarea").forEach(autoGrow);
+  if(!quiet) showMsg(`Pronto! Invoice de ${keyLabel(target)} iniciado. O mês anterior está no histórico.`, true);
+}
+
+// ---------- Trocar o nº do invoice = fechar o invoice anterior ----------
+let numBefore = null;
+$("invNumber").addEventListener("focus", ()=>{ numBefore = state.fields.invNumber || ""; });
+$("invNumber").addEventListener("change", ()=>{
+  const oldNum = numBefore, newNum = $("invNumber").value.trim();
+  numBefore = newNum;
+  if(oldNum === null || !oldNum || newNum === oldNum) return;
+  const sm = summarize(state.rows);
+  if(!sm.docs) return;                       // nada preenchido: só troca o número
+  const snapshot = structuredClone(state);
+  snapshot.fields.invNumber = oldNum;
+  const inv = invKey(), cur = curKey();
+  const target = inv < cur ? cur : addMonth(inv, 1);
+  state.fields.invNumber = oldNum;           // arquiva com o número antigo
+  startNewMonth(target, newNum, true);
+  toastUndo(`Invoice ${oldNum} (${keyLabel(inv)} · ${sm.docs} doc. · ${sm.pages} pág. · ${fmt(sm.total)}) salvo no histórico. Invoice ${newNum} iniciado em ${keyLabel(target)}.`,
+    ()=>{ applyState(snapshot); numBefore = oldNum; showMsg("Desfeito. O invoice voltou como estava.", true); });
+});
+function toastUndo(text, onUndo){
+  let t = $("toastUndo");
+  if(!t){
+    t = document.createElement("div"); t.id = "toastUndo";
+    t.style.cssText = "position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#1d2330;color:#fff;padding:12px 16px;border-radius:10px;z-index:101;box-shadow:0 6px 24px rgba(0,0,0,.3);display:flex;gap:14px;align-items:center;max-width:min(720px,92vw);font-size:14px";
+    document.body.appendChild(t);
+  }
+  t.innerHTML = `<span>✅ ${esc(text)}</span><button style="background:#fff;color:#1d2330;border:0;border-radius:6px;padding:6px 12px;font-weight:700;cursor:pointer;white-space:nowrap">Desfazer</button>`;
+  t.style.display = "flex";
+  t.querySelector("button").onclick = ()=>{ t.style.display = "none"; onUndo(); };
+  clearTimeout(t._h); t._h = setTimeout(()=> t.style.display = "none", 12000);
+  document.getElementById("history").scrollIntoView({behavior:"smooth", block:"start"});
+}
+function checkRollover(){
+  const inv = invKey(), cur = curKey();
+  if(inv >= cur) return;
+  const sm = summarize(state.rows);
+  if(!sm.docs){ // nada preenchido: só ajusta o mês
+    state.fields.month = String(keyParts(cur).m); state.fields.year = String(keyParts(cur).y);
+    $("month").value = state.fields.month; $("year").value = state.fields.year; updatePeriod(); save(); return;
+  }
+  if(state.rolloverSnooze === todayISO()) return;
+  openModal({
+    ico:"📅", title:`${MONTHS[keyParts(cur).m]} começou!`,
+    body:`<p>Este invoice ainda é de <b>${keyLabel(inv)}</b>:</p>
+      <div class="hl"><span>${sm.docs} documento(s) · ${sm.pages} página(s)</span><span>${fmt(sm.total)}</span></div>
+      <p>Quer fechar ${keyLabel(inv)} (ele vai para o histórico) e começar um invoice novo para <b>${keyLabel(cur)}</b>?</p>
+      <small>Se ainda precisa gerar o PDF de ${MONTHS[keyParts(inv).m]}, escolha "Gerar PDF primeiro" ou "Lembrar amanhã".</small>`,
+    buttons:[
+      {label:"Lembrar amanhã", onClick:()=>{ state.rolloverSnooze = todayISO(); save(); }},
+      {label:"Gerar PDF primeiro", onClick:()=>{ updateNotesPage(); setTimeout(()=>window.print(),100); }},
+      {label:`Sim, começar ${MONTHS[keyParts(cur).m]}`, primary:true, onClick:()=>startNewMonth(cur)}
+    ]
+  });
+}
+
+// ---------- Janela ----------
+function openModal({ico,title,body,buttons}){
+  $("mIco").textContent = ico||""; $("mTitle").textContent = title; $("mBody").innerHTML = body;
+  const box = $("mActions"); box.innerHTML = "";
+  buttons.forEach(b=>{
+    const el = document.createElement("button"); el.textContent = b.label; if(b.primary) el.className = "primary";
+    el.onclick = async ()=>{ closeModal(); if(b.onClick) await b.onClick(); };
+    box.appendChild(el);
+  });
+  $("modalBg").classList.add("open");
+  box.lastChild?.focus();
+}
+function closeModal(){ $("modalBg").classList.remove("open"); }
+
+// ---------- Histórico: gráfico e tabela ----------
+function renderHistory(){
+  const hist = (state.history||[]).slice();
+  const inv = invKey(), cur = curKey(), prev = addMonth(cur,-1), live = summarize(state.rows);
+  const ended = inv < cur;               // o mês do invoice aberto já terminou
+  const map = {};
+  hist.forEach(h=> map[h.key] = {...h, live:false});
+  if(live.docs || !hist.length){
+    const base = map[inv] || {key:inv, invNumber:state.fields.invNumber||"", docs:0, pages:0, total:0};
+    map[inv] = {...base, docs:base.docs+live.docs, pages:base.pages+live.pages, total:base.total+live.total, live:!ended, editing:true, ended};
+  }
+  // o mês atual sempre aparece (mesmo vazio)
+  if(!map[cur]) map[cur] = {key:cur, docs:0, pages:0, total:0, live:true, empty:true};
+  const keys = Object.keys(map).sort();
+  // preenche meses sem faturamento entre o primeiro e o último
+  const first = keys[0] < PROJECT_START ? keys[0] : PROJECT_START, last = keys[keys.length-1];
+  const all = []; for(let k=first; k<=last; k=addMonth(k,1)) all.push(map[k] || {key:k, docs:0, pages:0, total:0, empty:true});
+  const sum = all.reduce((a,h)=>a+h.total,0), docs = all.reduce((a,h)=>a+h.docs,0), pages = all.reduce((a,h)=>a+h.pages,0);
+  const closed = all.filter(h=>!h.live && h.total>0);
+  const best = all.reduce((b,h)=> h.total>(b?b.total:-1) ? h : b, null);
+  const avg = closed.length ? closed.reduce((a,h)=>a+h.total,0)/closed.length : sum/all.length;
+  const P = map[prev] || {docs:0,pages:0,total:0}, C = map[cur];
+  $("hSub").textContent = `Desde o início do projeto em ${keyLabel(PROJECT_START)} · ${all.length} ${all.length>1?"meses":"mês"}`;
+  $("hKpis").innerHTML = `
+    <div class="kpi main"><span>Total com traduções</span><strong>${fmt(sum)}</strong><small>${docs} documentos · ${pages} páginas</small></div>
+    <div class="kpi prev"><span>Mês anterior · ${keyLabel(prev)}</span><strong>${fmt(P.total)}</strong><small>${P.docs} documentos · ${P.pages} páginas${P.ended?" · encerrado":""}</small></div>
+    <div class="kpi"><span>Mês atual · ${keyLabel(cur)}</span><strong>${fmt(C.total)}</strong><small>${C.docs} documentos · ${C.pages} páginas · em andamento</small></div>
+    <div class="kpi"><span>Média por mês</span><strong>${fmt(avg)}</strong><small>${closed.length ? `${closed.length} ${closed.length>1?"meses encerrados":"mês encerrado"}` : "inclui o mês atual"}</small></div>
+    <div class="kpi"><span>Melhor mês</span><strong>${best && best.total ? fmt(best.total) : "—"}</strong><small>${best && best.total ? keyLabel(best.key) : ""}</small></div>`;
+  drawHistoryChart(all);
+  $("hRows").innerHTML = all.slice().reverse().map(h=>`
+    <tr>
+      <td><b>${keyLabel(h.key)}</b>${h.live?'<span class="tag">em andamento</span>':''}${h.ended?'<span class="tag done">encerrado</span>':''}${h.manual?'<span class="tag man">manual</span>':''}</td>
+      <td>${(!h.editing && !h.empty && !h.live) ? `<input class="h-num" data-hnum="${h.key}" value="${esc(h.invNumber||"")}" placeholder="—" title="Clique para editar o nº do invoice">` : esc(h.invNumber||"—")}</td>
+      <td class="r">${h.docs}</td><td class="r">${h.pages}</td><td class="r"><b>${fmt(h.total)}</b></td>
+      <td>${h.total>0 ? payBadge(h.key) : ""}</td>
+      <td class="h-actions">${(!h.editing && !h.live && !h.empty) ? `${h.rows?`<button data-hcsv="${h.key}">CSV</button> `:''}<button class="del" data-hdel="${h.key}">Remover</button>` : ''}</td>
+    </tr>`).join("");
+  $("hRows").querySelectorAll("[data-pay]").forEach(b=> b.onclick = ()=> payDialog(b.dataset.pay));
+  $("hRows").querySelectorAll("[data-hnum]").forEach(inp=> inp.onchange = ()=>{
+    const h = state.history.find(x=>x.key===inp.dataset.hnum); if(h){ h.invNumber = inp.value.trim(); save(); }
+  });
+  $("hRows").querySelectorAll("[data-hdel]").forEach(b=> b.onclick = ()=>{
+    const k=b.dataset.hdel;
+    openModal({ico:"🗑️", title:`Remover ${keyLabel(k)} do histórico?`, body:"<p>Esse mês sai do histórico e do total acumulado. O invoice atual não é afetado.</p>",
+      buttons:[{label:"Cancelar"},{label:"Remover", primary:true, onClick:()=>{ state.history = state.history.filter(h=>h.key!==k); save(); }}]});
+  });
+  $("hRows").querySelectorAll("[data-hcsv]").forEach(b=> b.onclick = ()=>{
+    const h = state.history.find(x=>x.key===b.dataset.hcsv); if(h) downloadCsv(h.rows, `invoice_${keyLabel(h.key).replace("/","_")}.csv`);
+  });
+}
+function drawHistoryChart(all){
+  const svg = $("hChart"), W = svg.clientWidth || 900, H = 260, padL = 64, padR = 12, padT = 24, padB = 34;
+  const max = Math.max(...all.map(h=>h.total), 1);
+  const step = (()=>{ const raw = max/4, p = Math.pow(10, Math.floor(Math.log10(raw))); return [1,2,2.5,5,10].map(x=>x*p).find(x=>x>=raw); })();
+  const top = Math.ceil(max/step)*step;
+  const iw = W-padL-padR, ih = H-padT-padB, slot = iw/all.length, bw = Math.min(56, slot*0.6);
+  const y = v=> padT + ih - v/top*ih;
+  let g = `<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#a9c4de"/><rect width="3" height="6" fill="#7fa6cc"/></pattern></defs>`;
+  for(let v=0; v<=top+0.01; v+=step){
+    g += `<line x1="${padL}" x2="${W-padR}" y1="${y(v)}" y2="${y(v)}" stroke="#e6e9ef" stroke-width="1"/>
+          <text x="${padL-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="#6b7385">${v>=1000 ? "R$ "+(v/1000).toLocaleString("pt-BR",{maximumFractionDigits:1})+" mil" : "R$ "+v}</text>`;
+  }
+  all.forEach((h,i)=>{
+    const cx = padL + slot*i + slot/2, x = cx - bw/2, top_ = y(h.total), hgt = Math.max(padT+ih-top_, h.total?2:0);
+    const r = Math.min(4, hgt/2);
+    const path = hgt ? `M${x},${padT+ih} V${top_+r} Q${x},${top_} ${x+r},${top_} H${x+bw-r} Q${x+bw},${top_} ${x+bw},${top_+r} V${padT+ih} Z` : "";
+    g += `<g class="bar" data-i="${i}"><rect x="${cx-slot/2}" y="${padT}" width="${slot}" height="${ih}" fill="transparent"/>
+      ${path ? `<path d="${path}" fill="${h.live ? "url(#hatch)" : "#1f4e79"}"/>` : ""}
+      ${h.total ? `<text x="${cx}" y="${top_-7}" text-anchor="middle" font-size="12" font-weight="700" fill="#1d2330">${fmt(h.total).replace(",00","")}</text>` : ""}
+      <text x="${cx}" y="${H-12}" text-anchor="middle" font-size="12" fill="${h.live ? "#1f4e79" : "#6b7385"}" font-weight="${h.live?700:400}">${keyShort(h.key)}</text></g>`;
+  });
+  g += `<line x1="${padL}" x2="${W-padR}" y1="${padT+ih}" y2="${padT+ih}" stroke="#c9cfd9"/>`;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.innerHTML = g;
+  const tip = $("hTip");
+  svg.querySelectorAll(".bar").forEach(b=>{
+    b.onmousemove = e=>{
+      const h = all[b.dataset.i], box = svg.getBoundingClientRect();
+      tip.innerHTML = `<b>${keyLabel(h.key)}</b>${h.live?" · em andamento":""}<br>${fmt(h.total)}<br>${h.docs} doc. · ${h.pages} pág.`;
+      tip.style.left = (e.clientX-box.left)+"px"; tip.style.top = (e.clientY-box.top-12)+"px"; tip.style.display = "block";
+    };
+    b.onmouseleave = ()=> tip.style.display = "none";
+  });
+}
+window.addEventListener("resize", ()=>{ clearTimeout(window._rz); window._rz = setTimeout(renderHistory, 150); });
+function downloadCsv(rows, name){
+  const head = ["#","Cliente","Idioma","Tipo","Paginas","Valor/pag","Solicitacao","Prazo","Entregue","Valor final"];
+  const lines = [head.join(";")];
+  rows.forEach((r,i)=> lines.push([i+1,r.cliente,r.idioma,r.tipo,r.paginas,r.valor,r.solicitacao,r.prazo,r.entregue,((+r.paginas||0)*(+r.valor||0)).toFixed(2).replace(".",",")].map(x=>`"${String(x??"").replace(/"/g,'""')}"`).join(";")));
+  const blob = new Blob(["\ufeff"+lines.join("\n")],{type:"text/csv"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+}
+MONTHS.forEach((m,i)=> $("hmMonth").add(new Option(m,i)));
+$("hmMonth").value = 8;
+$("hmAdd").onclick = ()=>{
+  const k = keyOf(+$("hmYear").value, +$("hmMonth").value), total = +$("hmTotal").value;
+  if(!(total>0)){ showMsg("Informe o valor total do mês.", false); return; }
+  if((state.history||[]).some(h=>h.key===k)){ showMsg(`${keyLabel(k)} já está no histórico.`, false); return; }
+  state.history = state.history || [];
+  state.history.push({key:k, manual:true, total, docs:+$("hmDocs").value||0, pages:+$("hmPages").value||0, invNumber:""});
+  state.history.sort((a,b)=>a.key.localeCompare(b.key));
+  ["hmTotal","hmDocs","hmPages"].forEach(id=>$(id).value=""); save();
+  showMsg(`${keyLabel(k)} adicionado ao histórico.`, true);
+};
+
+$("hmImport").onclick = ()=> $("hmFile").click();
+$("hmFile").onchange = e=>{
+  const f = e.target.files[0]; e.target.value = ""; if(!f) return;
+  f.text().then(t=>{
+    let s; try{ s = JSON.parse(t.replace(/^\uFEFF/,"")); }catch(err){ showMsg("Arquivo inválido.", false); return; }
+    const rows = (s && Array.isArray(s.rows)) ? s.rows : null;
+    if(!rows || !rows.length){ showMsg("Esse backup não tem documentos.", false); return; }
+    const cnt = {}; rows.forEach(r=>{ if(r.solicitacao){ const k=r.solicitacao.slice(0,7); cnt[k]=(cnt[k]||0)+1; } });
+    let k = Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];
+    if(!k && s.fields && s.fields.month!==undefined) k = keyOf(+s.fields.year, +s.fields.month);
+    if(!k){ showMsg("Não consegui descobrir o mês desse backup. Use o formulário acima.", false); return; }
+    const sm = summarize(rows);
+    openModal({ico:"📥", title:`Importar ${keyLabel(k)} para o histórico?`,
+      body:`<div class="hl"><span>${sm.docs} documento(s) · ${sm.pages} página(s)</span><span>${fmt(sm.total)}</span></div>
+        <small>Só importe se esse mês foi cobrado num invoice separado — senão o valor fica contado duas vezes.</small>`,
+      buttons:[{label:"Cancelar"},{label:"Importar", primary:true, onClick:()=>{
+        state.history = (state.history||[]).filter(h=>h.key!==k);
+        state.history.push({key:k, invNumber:(s.fields&&s.fields.invNumber)||"", ...sm, rows, notes:(s.fields&&s.fields.notes)||"", closedAt:new Date().toISOString()});
+        state.history.sort((a,b)=>a.key.localeCompare(b.key)); save();
+        showMsg(`${keyLabel(k)} importado para o histórico.`, true);
+      }}]});
+  });
+};
+
+// ---------- Salvamento automático em arquivo (Chrome / Edge) ----------
+const FS_OK = "showSaveFilePicker" in window;
+let fileHandle = null, fileReady = false, writeTimer = null;
+function idb(){ return new Promise((res,rej)=>{ const r=indexedDB.open("invoiceTraducao",1); r.onupgradeneeded=()=>r.result.createObjectStore("kv"); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function idbGet(k){ const db=await idb(); return new Promise((res,rej)=>{ const q=db.transaction("kv").objectStore("kv").get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error); }); }
+async function idbSet(k,v){ const db=await idb(); return new Promise((res,rej)=>{ const t=db.transaction("kv","readwrite"); t.objectStore("kv").put(v,k); t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); }); }
+
+function setSync(mode, extra){
+  const pill = $("syncPill"), txt = $("syncText");
+  pill.className = "sync" + ({none:" warn", perm:" warn", err:" err", saving:" saving"}[mode] || "");
+  const name = fileHandle ? fileHandle.name : "";
+  txt.textContent = {
+    ok: `Salvo automaticamente em ${name}${extra?" · "+extra:""}`,
+    saving: "Salvando…",
+    none: "Ativar salvamento automático",
+    perm: "Clique para continuar salvando no arquivo",
+    err: "Não salvou no arquivo — clique para reconectar",
+    browser: "Salvo neste navegador"
+  }[mode];
+  pill.title = mode==="ok" ? "Tudo o que você preenche é gravado sozinho nesse arquivo." : "";
+  pill.onclick = {none:connectDialog, perm:resumeSync, err:connectDialog}[mode] || null;
+}
+function scheduleFileWrite(){
+  if(!fileHandle || !fileReady) return;
+  clearTimeout(writeTimer); setSync("saving");
+  writeTimer = setTimeout(writeFile, 500);
+}
+async function writeFile(){
+  try{
+    const w = await fileHandle.createWritable();
+    await w.write(JSON.stringify(state, null, 2)); await w.close();
+    setSync("ok", new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}));
+  }catch(e){ fileReady = false; setSync("err"); }
+}
+async function loadFromFile(){
+  let s = null;
+  try{ const t = await (await fileHandle.getFile()).text(); if(t.trim()) s = JSON.parse(t.replace(/^\uFEFF/,"")); }catch(e){ s = null; }
+  fileReady = true;
+  if(s && Array.isArray(s.rows) && (s.savedAt||0) > (state.savedAt||0)){
+    applyState(s, {keepTime:true}); showMsg("Dados carregados do arquivo. Continue de onde parou!", true);
+  } else { await writeFile(); }
+  setSync("ok");
+}
+async function useHandle(h){
+  fileHandle = h; await idbSet("dataFile", h).catch(()=>{});
+  let p = await h.queryPermission({mode:"readwrite"});
+  if(p !== "granted") p = await h.requestPermission({mode:"readwrite"});
+  if(p === "granted") await loadFromFile(); else setSync("perm");
+}
+function connectDialog(){
+  openModal({
+    ico:"💾", title:"Salvar automaticamente no seu computador",
+    body:`<p>Escolha <b>uma vez</b> o arquivo onde o invoice vai ficar salvo. Depois disso, tudo o que você preencher é gravado sozinho, sem baixar nem enviar backup.</p>
+      <p><b>Primeira vez:</b> clique em "Criar arquivo", entre na pasta <b>Downloads › Invoice_Tradução</b> e salve como <b>invoice-dados.json</b>.</p>
+      <small>Já tem o arquivo? Use "Abrir arquivo existente". Se o navegador perguntar sobre a permissão, escolha "Permitir em todas as visitas".</small>`,
+    buttons:[
+      {label:"Agora não"},
+      {label:"Abrir arquivo existente", onClick: async ()=>{
+        try{ const [h] = await window.showOpenFilePicker({startIn:"downloads", types:[{description:"Dados do invoice", accept:{"application/json":[".json"]}}]}); await useHandle(h); }
+        catch(e){ if(e.name!=="AbortError") setSync("err"); }
+      }},
+      {label:"Criar arquivo", primary:true, onClick: async ()=>{
+        try{ const h = await window.showSaveFilePicker({suggestedName:"invoice-dados.json", startIn:"downloads", types:[{description:"Dados do invoice", accept:{"application/json":[".json"]}}]}); await useHandle(h); }
+        catch(e){ if(e.name!=="AbortError") setSync("err"); }
+      }}
+    ]
+  });
+}
+async function resumeSync(){
+  try{ const p = await fileHandle.requestPermission({mode:"readwrite"}); if(p==="granted") await loadFromFile(); else setSync("perm"); }
+  catch(e){ setSync("err"); }
+}
+async function initSync(){
+  if(!IS_FILE){ $("syncPill").style.display = "none"; return; }   // na versão web quem guarda é a nuvem
+  if(!FS_OK){ setSync("browser"); return; }
+  try{ fileHandle = await idbGet("dataFile"); }catch(e){ fileHandle = null; }
+  if(!fileHandle){ setSync("none"); return; }
+  try{
+    const p = await fileHandle.queryPermission({mode:"readwrite"});
+    if(p === "granted") await loadFromFile();
+    else {
+      setSync("perm");
+      openModal({ico:"👋", title:"Bem-vindo de volta!", body:`<p>Clique em continuar para abrir seus dados salvos em <b>${esc(fileHandle.name)}</b>.</p><small>Para não precisar clicar toda vez, escolha "Permitir em todas as visitas" quando o navegador perguntar.</small>`,
+        buttons:[{label:"Continuar", primary:true, onClick:resumeSync}]});
+    }
+  }catch(e){ setSync("err"); }
+}
+
+
+// =====================================================================
+//  Sincronização entre dispositivos (GitHub Gist + token do usuário)
+// =====================================================================
+const APP_VERSION = "2026.11.23-1";
+const IS_FILE = location.protocol === "file:";
+const PAGES_BASE = IS_FILE ? "https://rsaesm-byte.github.io/traducoes/" : new URL(".", location.href).href;
+const CLOUD = { LS:"invoiceTraducao_gist_v1", FILE:"invoice-traducao-dados.json", REPORT_FILE:"relatorio-traducoes.json",
+  cfg:null, busy:false, timer:null, lastReport:"" };
+try{ CLOUD.cfg = JSON.parse(localStorage.getItem(CLOUD.LS)) || null; }catch(e){}
+function cloudSaveCfg(c){ CLOUD.cfg = c; try{ c ? localStorage.setItem(CLOUD.LS, JSON.stringify(c)) : localStorage.removeItem(CLOUD.LS); }catch(e){} }
+
+async function gh(path, opt={}){
+  const r = await fetch("https://api.github.com" + path, { ...opt, cache:"no-store", headers:{
+    Accept:"application/vnd.github+json", Authorization:"Bearer " + CLOUD.cfg.token, "Content-Type":"application/json" } });
+  if(!r.ok){ const e = new Error("github " + r.status); e.status = r.status; throw e; }
+  return r;
+}
+async function gistFile(g, name){
+  const f = g.files && g.files[name]; if(!f) return null;
+  if(f.truncated){ return await (await fetch(f.raw_url, {cache:"no-store"})).text(); }
+  return f.content;
+}
+async function findGist(fileName){            // procura um gist já existente (outro aparelho já conectado)
+  for(let page=1; page<=5; page++){
+    const list = await (await gh(`/gists?per_page=100&page=${page}`)).json();
+    const g = list.find(x=> x.files && x.files[fileName]);
+    if(g) return g.id;
+    if(list.length < 100) break;
+  }
+  return null;
+}
+async function cloudRead(){
+  if(!CLOUD.cfg.id) return null;
+  try{
+    const g = await (await gh("/gists/" + CLOUD.cfg.id + "?_=" + Date.now())).json();
+    const t = await gistFile(g, CLOUD.FILE); return t ? JSON.parse(t) : null;
+  }catch(e){ if(e.status === 404){ CLOUD.cfg.id = null; return null; } throw e; }
+}
+async function cloudWrite(){
+  const files = { [CLOUD.FILE]: { content: JSON.stringify(state) } };
+  if(!CLOUD.cfg.id){
+    const g = await (await gh("/gists", {method:"POST", body:JSON.stringify({description:"Invoice de Traduções - dados (não apague)", public:false, files})})).json();
+    CLOUD.cfg.id = g.id;
+  } else await gh("/gists/" + CLOUD.cfg.id, {method:"PATCH", body:JSON.stringify({files})});
+  CLOUD.cfg.syncedAt = state.savedAt || 0; cloudSaveCfg(CLOUD.cfg);
+}
+function setCloud(mode, extra){
+  const pill = $("cloudPill"), txt = $("cloudText");
+  pill.className = "sync" + ({off:" warn", err:" err", busy:" saving"}[mode] || "");
+  txt.textContent = { off:"☁ Conectar nuvem", busy:"☁ Sincronizando…", ok:"☁ Sincronizado" + (extra ? " · " + extra : ""), err:"☁ Erro na nuvem — clique" }[mode];
+  pill.style.cursor = "pointer";
+  pill.onclick = cloudDialog;
+}
+async function syncNow(manual){
+  if(!CLOUD.cfg){ setCloud("off"); return false; }
+  if(CLOUD.busy) return false; CLOUD.busy = true; setCloud("busy");
+  try{
+    const R = await cloudRead();
+    if(!R) await cloudWrite();
+    else if((R.savedAt||0) > (state.savedAt||0)){
+      applyState(R, {keepTime:true}); CLOUD.cfg.syncedAt = R.savedAt; cloudSaveCfg(CLOUD.cfg);
+      if(manual !== "silent") showMsg("Dados atualizados com a versão mais recente da nuvem.", true);
+      checkRollover();
+    }
+    else if((state.savedAt||0) > (R.savedAt||0)) await cloudWrite();
+    if(state.reportGistId) await publishReport(false);
+    setCloud("ok", new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}));
+    return true;
+  }catch(e){
+    console.warn("sync", e);
+    if(e.status === 401){ cloudSaveCfg(null); setCloud("off"); showMsg("Token recusado pelo GitHub. Conecte de novo.", false); }
+    else setCloud("err");
+    return false;
+  }finally{ CLOUD.busy = false; }
+}
+function cloudSchedule(){
+  if(!CLOUD.cfg) return;
+  clearTimeout(CLOUD.timer); CLOUD.timer = setTimeout(()=>syncNow("silent"), 2500);
+}
+async function cloudConnect(token){
+  token = (token||"").trim();
+  if(!/^(ghp_|github_pat_)/.test(token)){ showMsg("Cole o token completo (começa com ghp_).", false); return; }
+  cloudSaveCfg({token}); setCloud("busy");
+  try{
+    CLOUD.cfg.id = await findGist(CLOUD.FILE); cloudSaveCfg(CLOUD.cfg);
+    if(!state.reportGistId){ const rid = await findGist(CLOUD.REPORT_FILE); if(rid) state.reportGistId = rid; }
+    const ok = await syncNow();
+    if(ok) showMsg(CLOUD.cfg.id ? "Nuvem conectada! Este aparelho agora sincroniza com os outros." : "Nuvem conectada!", true);
+  }catch(e){ cloudSaveCfg(null); setCloud("off"); showMsg(e.status===401 ? "Token inválido." : "Não consegui falar com o GitHub. Verifique a internet.", false); }
+}
+function cloudDialog(){
+  if(CLOUD.cfg){
+    openModal({ico:"☁️", title:"Sincronização entre dispositivos",
+      body:`<p>Este aparelho está conectado. Tudo o que você preenche vai para a nuvem em segundos, e os outros aparelhos recebem ao abrir, ao voltar para a aba ou a cada minuto.</p>
+        <div class="hl"><span>Última sincronização</span><span>${CLOUD.cfg.syncedAt ? new Date(CLOUD.cfg.syncedAt).toLocaleString("pt-BR") : "—"}</span></div>
+        <small>Para conectar outro aparelho, abra o app nele e cole o <b>mesmo token</b>. "Desconectar" apaga o token só deste aparelho; os dados continuam na nuvem.</small>`,
+      buttons:[{label:"Desconectar", onClick:()=>{ cloudSaveCfg(null); setCloud("off"); showMsg("Este aparelho foi desconectado da nuvem.", true); }},
+               {label:"Fechar"},
+               {label:"Sincronizar agora", primary:true, onClick:()=>syncNow()}]});
+    return;
+  }
+  openModal({ico:"☁️", title:"Conectar à nuvem (GitHub)",
+    body:`<p>Com isso o mesmo invoice aparece no computador, na versão web e no celular.</p>
+      <ol class="steps">
+        <li>Abra <a href="https://github.com/settings/tokens/new?scopes=gist&description=Invoice%20de%20Tradu%C3%A7%C3%B5es" target="_blank" rel="noopener">este link do GitHub</a> (já vem com a caixa <b>gist</b> marcada).</li>
+        <li>Em <b>Expiration</b> escolha <b>No expiration</b> e clique em <b>Generate token</b>.</li>
+        <li>Copie o código <b>ghp_…</b> e cole abaixo.</li>
+      </ol>
+      <input class="tk" id="tkInput" type="password" placeholder="ghp_..." autocomplete="off">
+      <small>O token fica salvo só neste aparelho. Não mande por WhatsApp/e-mail. Em outro aparelho, use o mesmo token.</small>`,
+    buttons:[{label:"Cancelar"},{label:"Conectar", primary:true, onClick:()=>cloudConnect(document.getElementById("tkInput").value)}]});
+  setTimeout(()=>{ const i = document.getElementById("tkInput"); if(i) i.focus(); }, 50);
+}
+
+// ---------- Relatório compartilhável (link externo) ----------
+function buildReport(){
+  const f = state.fields;
+  const pack = (key, rows, extra)=>{
+    const sm = summarize(rows), {y,m} = keyParts(key), last = new Date(y,m+1,0).getDate(), mm = String(m+1).padStart(2,"0");
+    return { key, label:keyLabel(key), period:`01/${mm}/${y} a ${last}/${mm}/${y}`,
+      rows: rows.filter(r=> r.cliente || r.tipo || (+r.paginas && +r.valor)).map(r=>({cliente:r.cliente||"", idioma:r.idioma||"", tipo:r.tipo||"", paginas:+r.paginas||0, valor:+r.valor||0,
+        solicitacao:r.solicitacao||"", prazo:r.prazo||"", entregue:r.entregue||"", total:(+r.paginas||0)*(+r.valor||0)})),
+      docs:sm.docs, pages:sm.pages, total:sm.total, ...extra };
+  };
+  const invoices = [ pack(invKey(), state.rows, {invNumber:f.invNumber||"", invDate:f.invDate||"", notes:f.notes||"", current:true}) ];
+  (state.history||[]).filter(h=>h.rows && h.rows.length).forEach(h=> invoices.push(pack(h.key, h.rows, {invNumber:h.invNumber||"", invDate:"", notes:h.notes||""})));
+  invoices.sort((a,b)=> b.key.localeCompare(a.key));
+  if(!state.ntfyTopic){ state.ntfyTopic = "rs-traducoes-" + Array.from(crypto.getRandomValues(new Uint8Array(10)), b=>b.toString(16).padStart(2,"0")).join(""); }
+  return { app:"invoice-traducao", v:1, updatedAt:Date.now(), notify:state.ntfyTopic, payments:state.payments||{},
+    from:{name:f.fromName||"", doc:f.fromDoc||"", contact:f.fromContact||""},
+    to:{name:f.toName||"", doc:f.toDoc||"", contact:f.toContact||""},
+    payInfo:f.payInfo||"", invoices };
+}
+async function publishReport(force){
+  const rep = buildReport(), sig = JSON.stringify({...rep, updatedAt:0});
+  if(!force && sig === CLOUD.lastReport) return;
+  const files = { [CLOUD.REPORT_FILE]: { content: JSON.stringify(rep) } };
+  if(!state.reportGistId){
+    const g = await (await gh("/gists", {method:"POST", body:JSON.stringify({description:"Relatório de traduções - Ricardo Saes (link de visualização)", public:false, files})})).json();
+    state.reportGistId = g.id; save();
+  } else await gh("/gists/" + state.reportGistId, {method:"PATCH", body:JSON.stringify({files})});
+  CLOUD.lastReport = sig;
+}
+const reportLink = ()=> PAGES_BASE + "relatorio.html#" + state.reportGistId;
+$("btnShare").onclick = async ()=>{
+  if(!CLOUD.cfg){
+    openModal({ico:"🔗", title:"Primeiro, conecte a nuvem", body:"<p>O link do relatório usa a mesma conexão do GitHub. Conecte a nuvem e depois clique de novo em <b>Link do relatório</b>.</p>",
+      buttons:[{label:"Agora não"},{label:"Conectar nuvem", primary:true, onClick:cloudDialog}]});
+    return;
+  }
+  try{ setCloud("busy"); await publishReport(true); setCloud("ok", "relatório atualizado"); }
+  catch(e){ setCloud("err"); showMsg("Não consegui gerar o link. Verifique a internet e tente de novo.", false); return; }
+  const url = reportLink();
+  openModal({ico:"🔗", title:"Link do relatório",
+    body:`<p>Quem tiver este link vê o invoice (e os meses anteriores) e pode salvar em <b>PDF</b> ou <b>Excel</b>. Não precisa de login.</p>
+      <div class="linkbox"><input id="shareUrl" readonly value="${esc(url)}"><button id="copyUrl">Copiar</button></div>
+      <small>O relatório se atualiza sozinho sempre que você altera o invoice. Ele mostra seus dados de pagamento e CPF, como no PDF — envie só para quem deve ver. O histórico de faturamento não aparece.</small>
+      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
+      <p><b>💰 Avisos de pagamento.</b> No relatório o cliente tem o botão <b>Confirmar pagamento</b> (já paguei / vou pagar em). Para receber o aviso no celular:</p>
+      <ol class="steps"><li>Instale o app <b>ntfy</b> (Play Store ou App Store).</li><li>Toque em <b>+</b> e assine o tópico abaixo (servidor padrão ntfy.sh).</li></ol>
+      <div class="linkbox"><input id="topicTxt" readonly value="${esc(state.ntfyTopic)}"><button id="copyTopic">Copiar</button></div>
+      <small>Neste app o status aparece sozinho na coluna <b>Pagamento</b> do histórico. Abra o app em até 12 h depois do aviso para ele registrar automaticamente (o aviso no celular chega de qualquer jeito).</small>`,
+    buttons:[{label:"Avisar neste computador", onClick:()=>{ try{ Notification.requestPermission().then(r=> showMsg(r==="granted" ? "Avisos ativados neste computador." : "O navegador não permitiu avisos.", r==="granted")); }catch(e){} }},
+             {label:"Fechar"},{label:"Abrir relatório", primary:true, onClick:()=>window.open(url, "_blank", "noopener")}]});
+  setTimeout(()=>{ const t = document.getElementById("copyTopic"); if(t) t.onclick = ()=>{ navigator.clipboard?.writeText(state.ntfyTopic); t.textContent = "Copiado!"; }; }, 30);
+  setTimeout(()=>{ const b = document.getElementById("copyUrl"); if(b) b.onclick = ()=>{ const i = document.getElementById("shareUrl"); i.select(); navigator.clipboard?.writeText(i.value).catch(()=>document.execCommand("copy")); b.textContent = "Copiado!"; }; }, 30);
+};
+
+
+// ---------- Pagamentos: confirmação pelo tradutor e pelo cliente ----------
+function payBadge(key){
+  const p = (state.payments||{})[key];
+  if(!p) return `<span class="pay"><span class="st pend">Pendente</span><button data-pay="${key}">Confirmar</button></span>`;
+  const who = p.source === "cliente" ? `pelo cliente${p.name ? " ("+esc(p.name)+")" : ""}` : "por você";
+  const st = p.status === "paid" ? `<span class="st paid">✓ Pago em ${fmtDate(p.date)}</span>` : `<span class="st sched">🗓 Previsto ${fmtDate(p.date)}</span>`;
+  return `<span class="pay" title="${p.note ? esc(p.note) : ""}">${st}<small>${who}</small><button data-pay="${key}">Editar</button></span>`;
+}
+function payDialog(key){
+  const p = (state.payments||{})[key] || {status:"paid", date:todayISO(), note:""};
+  openModal({ico:"💰", title:`Pagamento de ${keyLabel(key)}`,
+    body:`<div class="pay-opts">
+        <label><input type="radio" name="pst" value="paid" ${p.status==="paid"?"checked":""}> ✓ Já foi pago</label>
+        <label><input type="radio" name="pst" value="scheduled" ${p.status==="scheduled"?"checked":""}> 🗓 Previsto</label>
+      </div>
+      <label>Data</label><input type="date" id="pDate" value="${p.date||todayISO()}">
+      <label style="margin-top:8px">Observação (opcional)</label><input id="pNote" value="${esc(p.note||"")}" placeholder="ex.: PIX, pago em duas vezes...">`,
+    buttons:[
+      ...(state.payments && state.payments[key] ? [{label:"Voltar para pendente", onClick:()=>{ delete state.payments[key]; save(); }}] : []),
+      {label:"Cancelar"},
+      {label:"Salvar", primary:true, onClick:()=>{
+        const st = document.querySelector('input[name=pst]:checked').value, d = document.getElementById("pDate").value;
+        if(!d){ showMsg("Informe a data.", false); return; }
+        state.payments = state.payments || {};
+        state.payments[key] = {status:st, date:d, note:document.getElementById("pNote").value.trim(), source:"tradutor", at:Date.now()};
+        save(); showMsg(`Pagamento de ${keyLabel(key)} atualizado.`, true);
+      }}]});
+}
+// Avisos do cliente chegam pelo ntfy.sh (tópico secreto guardado no relatório)
+async function pollPayments(){
+  if(!state.ntfyTopic) return;
+  let txt;
+  try{ txt = await (await fetch(`https://ntfy.sh/${state.ntfyTopic}/json?poll=1&since=${state.ntfySince || "all"}`, {cache:"no-store"})).text(); }
+  catch(e){ return; }
+  const seen = new Set(state.ntfySeen || []); let changed = false; const news = [];
+  txt.split("\n").filter(Boolean).forEach(line=>{
+    let m; try{ m = JSON.parse(line); }catch(e){ return; }
+    if(m.event !== "message" || seen.has(m.id)) return;
+    seen.add(m.id); state.ntfySince = m.id; changed = true;
+    const ref = /ref:(\d{4}-\d{2})\|(paid|scheduled)\|(\d{4}-\d{2}-\d{2})/.exec(m.message || "");
+    if(!ref) return;
+    const name = (/Nome: (.+)/.exec(m.message)||[])[1] || "", note = (/Obs: (.+)/.exec(m.message)||[])[1] || "";
+    state.payments = state.payments || {};
+    state.payments[ref[1]] = {status:ref[2], date:ref[3], note, name, source:"cliente", at:(m.time||0)*1000};
+    news.push({key:ref[1], status:ref[2], date:ref[3], name});
+  });
+  if(!changed) return;
+  state.ntfySeen = Array.from(seen).slice(-100); save();
+  news.forEach(n=>{
+    const t = n.status === "paid" ? `💰 ${keyLabel(n.key)}: pago em ${fmtDate(n.date)}` : `🗓 ${keyLabel(n.key)}: pagamento previsto para ${fmtDate(n.date)}`;
+    showMsg(t + (n.name ? ` (${n.name})` : ""), true);
+    try{ if(Notification.permission === "granted") new Notification("Invoice de Traduções", {body:t, icon:"icon-192.png"}); }catch(e){}
+  });
+}
+setInterval(pollPayments, 60000);
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) pollPayments(); });
+
+// ---------- Botão Atualizar: sincroniza + procura versão nova ----------
+async function checkVersion(manual){
+  try{
+    const v = await (await fetch(PAGES_BASE + "version.json?_=" + Date.now(), {cache:"no-store"})).json();
+    if(v.version && v.version > APP_VERSION){
+      const b = $("updBanner");
+      b.innerHTML = IS_FILE
+        ? `Versão nova disponível (${esc(v.version)}). <a href="${PAGES_BASE}invoice-traducao.html" download>Baixar a versão desktop</a> e salve por cima deste arquivo.`
+        : `Versão nova disponível (${esc(v.version)}). <button id="doUpd">Atualizar agora</button>`;
+      b.style.display = "block";
+      const d = document.getElementById("doUpd"); if(d) d.onclick = hardReload;
+      return true;
+    }
+    if(manual) showMsg(`Você já está na versão mais recente (${APP_VERSION}).`, true);
+  }catch(e){ if(manual) showMsg("Não consegui verificar a versão agora (sem internet?).", false); }
+  return false;
+}
+async function hardReload(){
+  try{ if("caches" in window){ for(const k of await caches.keys()) await caches.delete(k); }
+       const reg = await navigator.serviceWorker?.getRegistration(); if(reg) await reg.update(); }catch(e){}
+  location.reload();
+}
+$("btnUpdate").onclick = async ()=>{
+  const b = $("btnUpdate"); b.disabled = true; b.textContent = "⟳ Atualizando…";
+  if(CLOUD.cfg) await syncNow();
+  await checkVersion(true);
+  b.disabled = false; b.textContent = "⟳ Atualizar";
+};
+
+// sincroniza ao abrir, ao voltar para a aba e a cada 60 s
+setCloud(CLOUD.cfg ? "ok" : "off");
+setInterval(()=>syncNow("silent"), 60000);
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) syncNow("silent"); });
+if(!IS_FILE && "serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+
+// ---------- Início ----------
+initHeader();
+if(!state.rows.length) state.rows.push(newRow());
+renderLists(); render();
+updateNotesPage(); document.querySelectorAll(".notes textarea").forEach(autoGrow);
+// garante que o mês/ano do invoice fique gravado (usado para detectar a virada do mês)
+if(state.fields.month === undefined){ state.fields.month = $("month").value; state.fields.year = $("year").value; }
+state.history = state.history || [];
+window._ready = true; renderHistory();
+save({silent:true}); if(!storageOk) showMsg("Atenção: este navegador não está salvando automaticamente. Use 'Salvar backup' antes de fechar.", false);
+(async()=>{ await initSync(); if(CLOUD.cfg) await syncNow("silent"); checkRollover(); checkVersion(false); pollPayments(); })();
+</script>
+</body>
+</html>
