@@ -931,7 +931,7 @@ function renderHistory(){
   $("hKpis").innerHTML = `
     <div class="kpi main"><span>Total com traduções</span><strong>${fmt(sum)}</strong><small>${docs} documentos · ${pages} páginas</small></div>
     <div class="kpi prev"><span>Mês anterior · ${keyLabel(prev)}</span><strong>${fmt(P.total)}</strong><small>${P.docs} documentos · ${P.pages} páginas${P.ended?" · encerrado":""}</small></div>
-    <div class="kpi"><span>Mês atual · ${keyLabel(cur)}</span><strong>${fmt(C.total)}</strong><small>${C.docs} documentos · ${C.pages} páginas · em andamento</small></div>
+    <div class="kpi"><span>Mês atual · ${keyLabel(cur)}</span><strong>${fmt(C.total)}</strong><small>${C.docs} documentos · ${C.pages} páginas${C.live ? " · em andamento" : C.editing ? "" : " · fechado"}</small></div>
     <div class="kpi"><span>Média por mês</span><strong>${fmt(avg)}</strong><small>${closed.length ? `${closed.length} ${closed.length>1?"meses encerrados":"mês encerrado"}` : "inclui o mês atual"}</small></div>
     <div class="kpi"><span>Melhor mês</span><strong>${best && best.total ? fmt(best.total) : "—"}</strong><small>${best && best.total ? keyLabel(best.key) : ""}</small></div>`;
   drawHistoryChart(all);
@@ -941,9 +941,10 @@ function renderHistory(){
       <td>${(!h.editing && !h.empty && !h.live) ? `<input class="h-num" data-hnum="${h.key}" value="${esc(h.invNumber||"")}" placeholder="—" title="Clique para editar o nº do invoice">` : esc(h.invNumber||"—")}</td>
       <td class="r">${h.docs}</td><td class="r">${h.pages}</td><td class="r"><b>${fmt(h.total)}</b></td>
       <td>${h.total>0 ? payBadge(h.key) : ""}</td>
-      <td class="h-actions">${(!h.editing && !h.live && !h.empty) ? `${h.rows?`<button data-hcsv="${h.key}">CSV</button> `:''}<button class="del" data-hdel="${h.key}">Remover</button>` : ''}</td>
+      <td class="h-actions">${h.editing ? `<small style="color:var(--muted)">edite na tabela acima</small>` : `<button data-hedit="${h.key}">✎ Editar</button> ${(!h.empty && h.rows) ? `<button data-hcsv="${h.key}">CSV</button> ` : ''}${!h.empty ? `<button class="del" data-hdel="${h.key}">Remover</button>` : ''}`}</td>
     </tr>`).join("");
   $("hRows").querySelectorAll("[data-pay]").forEach(b=> b.onclick = ()=> payDialog(b.dataset.pay));
+  $("hRows").querySelectorAll("[data-hedit]").forEach(b=> b.onclick = ()=> histEdit(b.dataset.hedit));
   $("hRows").querySelectorAll("[data-hnum]").forEach(inp=> inp.onchange = ()=>{
     const h = state.history.find(x=>x.key===inp.dataset.hnum); if(h){ h.invNumber = inp.value.trim(); save(); }
   });
@@ -1126,7 +1127,7 @@ async function initSync(){
 // =====================================================================
 //  Sincronização entre dispositivos (GitHub Gist + token do usuário)
 // =====================================================================
-const APP_VERSION = "2026.11.23-1";
+const APP_VERSION = "2026.11.24-1";
 const IS_FILE = location.protocol === "file:";
 const PAGES_BASE = IS_FILE ? "https://rsaesm-byte.github.io/traducoes/" : new URL(".", location.href).href;
 const CLOUD = { LS:"invoiceTraducao_gist_v1", FILE:"invoice-traducao-dados.json", REPORT_FILE:"relatorio-traducoes.json",
@@ -1299,6 +1300,35 @@ function payBadge(key){
   const who = p.source === "cliente" ? `pelo cliente${p.name ? " ("+esc(p.name)+")" : ""}` : "por você";
   const st = p.status === "paid" ? `<span class="st paid">✓ Pago em ${fmtDate(p.date)}</span>` : `<span class="st sched">🗓 Previsto ${fmtDate(p.date)}</span>`;
   return `<span class="pay" title="${p.note ? esc(p.note) : ""}">${st}<small>${who}</small><button data-pay="${key}">Editar</button></span>`;
+}
+// ---------- Editar um mês do histórico (mês/ano, nº, documentos, páginas, valor) ----------
+function histEdit(key){
+  state.history = state.history || [];
+  const h = state.history.find(x=>x.key===key) || {key, invNumber:"", docs:0, pages:0, total:0, manual:true};
+  const {y,m} = keyParts(key);
+  openModal({ico:"✎", title:`Editar ${keyLabel(key)}`,
+    body:`<div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
+        <div><label>Mês</label><select id="heMonth">${MONTHS.map((n,i)=>`<option value="${i}" ${i===m?"selected":""}>${n}</option>`).join("")}</select></div>
+        <div><label>Ano</label><input id="heYear" type="number" value="${y}"></div>
+        <div><label>Invoice Nº</label><input id="heNum" value="${esc(h.invNumber||"")}"></div>
+        <div><label>Valor (R$)</label><input id="heTotal" type="number" min="0" step="0.01" value="${(+h.total||0).toFixed(2)}"></div>
+        <div><label>Documentos</label><input id="heDocs" type="number" min="0" value="${+h.docs||0}"></div>
+        <div><label>Páginas</label><input id="hePages" type="number" min="0" value="${+h.pages||0}"></div>
+      </div>
+      <small style="display:block;margin-top:10px">Trocar o mês move este invoice (e o status de pagamento) para o mês escolhido.${h.rows && h.rows.length ? " Os documentos detalhados continuam guardados para o CSV e o relatório." : ""}</small>`,
+    buttons:[{label:"Cancelar"},{label:"Salvar", primary:true, onClick:()=>{
+      const nk = keyOf(+$("heYear").value, +$("heMonth").value);
+      const vals = {invNumber:$("heNum").value.trim(), total:+$("heTotal").value||0, docs:+$("heDocs").value||0, pages:+$("hePages").value||0};
+      if(nk !== key && (nk === invKey() || state.history.some(x=>x.key===nk))){
+        showMsg(`${keyLabel(nk)} já tem um invoice. Remova ou edite aquele mês antes.`, false); return;
+      }
+      const i = state.history.indexOf(h);
+      const novo = {...h, ...vals, key:nk, edited:true};
+      if(i >= 0) state.history[i] = novo; else state.history.push(novo);
+      state.history.sort((a,b)=>a.key.localeCompare(b.key));
+      if(nk !== key && state.payments && state.payments[key]){ state.payments[nk] = state.payments[key]; delete state.payments[key]; }
+      save(); showMsg(`${keyLabel(nk)} atualizado no histórico.`, true);
+    }}]});
 }
 function payDialog(key){
   const p = (state.payments||{})[key] || {status:"paid", date:todayISO(), note:""};
