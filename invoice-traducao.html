@@ -935,9 +935,14 @@ function renderHistory(){
     <div class="kpi"><span>Média por mês</span><strong>${fmt(avg)}</strong><small>${closed.length ? `${closed.length} ${closed.length>1?"meses encerrados":"mês encerrado"}` : "inclui o mês atual"}</small></div>
     <div class="kpi"><span>Melhor mês</span><strong>${best && best.total ? fmt(best.total) : "—"}</strong><small>${best && best.total ? keyLabel(best.key) : ""}</small></div>`;
   drawHistoryChart(all);
-  $("hRows").innerHTML = all.slice().reverse().map(h=>`
+  // se já existe um invoice arquivado no mesmo mês do invoice aberto, mostra os dois separados
+  const dupArch = live.docs ? hist.find(h=>h.key===inv) : null;
+  const tableRows = all.slice().reverse().flatMap(h=> (h.editing && dupArch)
+    ? [{...h, docs:live.docs, pages:live.pages, total:live.total, invNumber:state.fields.invNumber||""}, {...dupArch, live:false, dup:true}]
+    : [h.editing ? {...h, invNumber:state.fields.invNumber||""} : h]);
+  $("hRows").innerHTML = tableRows.map(h=>`
     <tr>
-      <td><b>${keyLabel(h.key)}</b>${h.live?'<span class="tag">em andamento</span>':''}${h.ended?'<span class="tag done">encerrado</span>':''}${h.manual?'<span class="tag man">manual</span>':''}</td>
+      <td><b>${keyLabel(h.key)}</b>${h.live?'<span class="tag">em andamento</span>':''}${h.ended?'<span class="tag done">encerrado</span>':''}${h.manual?'<span class="tag man">manual</span>':''}${h.dup?'<span class="tag" style="background:#fde2e1;color:#8c1d18">arquivado no mesmo mês — confira</span>':''}</td>
       <td>${(!h.editing && !h.empty && !h.live) ? `<input class="h-num" data-hnum="${h.key}" value="${esc(h.invNumber||"")}" placeholder="—" title="Clique para editar o nº do invoice">` : esc(h.invNumber||"—")}</td>
       <td class="r">${h.docs}</td><td class="r">${h.pages}</td><td class="r"><b>${fmt(h.total)}</b></td>
       <td>${h.total>0 ? payBadge(h.key) : ""}</td>
@@ -950,8 +955,12 @@ function renderHistory(){
   });
   $("hRows").querySelectorAll("[data-hdel]").forEach(b=> b.onclick = ()=>{
     const k=b.dataset.hdel;
-    openModal({ico:"🗑️", title:`Remover ${keyLabel(k)} do histórico?`, body:"<p>Esse mês sai do histórico e do total acumulado. O invoice atual não é afetado.</p>",
-      buttons:[{label:"Cancelar"},{label:"Remover", primary:true, onClick:()=>{ state.history = state.history.filter(h=>h.key!==k); save(); }}]});
+    openModal({ico:"🗑️", title:`Remover ${keyLabel(k)} do histórico?`, body:"<p>Esse invoice arquivado sai do histórico e do total acumulado, junto com o status de pagamento dele. O invoice aberto na tabela de cima não é afetado.</p>",
+      buttons:[{label:"Cancelar"},{label:"Remover", primary:true, onClick:()=>{
+        state.history = state.history.filter(h=>h.key!==k);
+        if(state.payments && state.payments[k]) delete state.payments[k];
+        save(); showMsg(`${keyLabel(k)} removido do histórico (com o status de pagamento dele).`, true);
+      }}]});
   });
   $("hRows").querySelectorAll("[data-hcsv]").forEach(b=> b.onclick = ()=>{
     const h = state.history.find(x=>x.key===b.dataset.hcsv); if(h) downloadCsv(h.rows, `invoice_${keyLabel(h.key).replace("/","_")}.csv`);
@@ -1127,7 +1136,7 @@ async function initSync(){
 // =====================================================================
 //  Sincronização entre dispositivos (GitHub Gist + token do usuário)
 // =====================================================================
-const APP_VERSION = "2026.11.24-1";
+const APP_VERSION = "2026.11.24-2";
 const IS_FILE = location.protocol === "file:";
 const PAGES_BASE = IS_FILE ? "https://rsaesm-byte.github.io/traducoes/" : new URL(".", location.href).href;
 const CLOUD = { LS:"invoiceTraducao_gist_v1", FILE:"invoice-traducao-dados.json", REPORT_FILE:"relatorio-traducoes.json",

@@ -1,5 +1,5 @@
 // Service worker: página = rede primeiro (pega atualização); ícones = cache primeiro
-const VERSAO = "traducoes-v2";
+const VERSAO = "traducoes-v3";
 const ARQUIVOS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", e => { self.skipWaiting(); e.waitUntil(caches.open(VERSAO).then(c => c.addAll(ARQUIVOS)).catch(()=>{})); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSAO).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
